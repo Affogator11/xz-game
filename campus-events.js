@@ -3,15 +3,15 @@
   const {events,followups}=window.CampusEventLibrary;
   const find=(id,legacy)=>[...legacy,...events,...Object.values(followups)].find(e=>e.id===id);
   function eventType(event){if(!event)return '事件';if(event.kind==='aiInvite')return '校际邀请';if(Object.values(followups).some(x=>x.id===event.id))return '后续事件';if(Object.keys(followups).some(k=>k===event.id||k.startsWith(event.id+':'))||['student_petition','teacher_project'].includes(event.id))return '关联事件';return '单次事件'}
-  window.CampusEvents={find,eventType,briefing(state,legacy){
+  window.CampusEvents={find,eventType,briefing(state,legacy,invite=null){
     const due=(state.campusEventPending||[]).find(x=>x.day<=state.day&&followups[x.source]);
-    const selected=due?[followups[due.source]]:[];
+    const selected=due?[followups[due.source]]:[];if(invite)selected.push(invite);
     const history=state.campusEventHistory||{}, categories=state.campusEventCategories||{};
     const all=[...legacy,...events.filter(e=>e.condition(state))];
     const singles=all.filter(e=>!Object.keys(followups).some(k=>k===e.id||k.startsWith(e.id+':'))&&e.id!=='student_petition'&&e.id!=='teacher_project');
     function draw(source){let pool=source.filter(e=>!selected.some(x=>x.id===e.id)&&state.day-(history[e.id]??-999)>=28&&state.day-(categories[e.tag]??-999)>=14&&!selected.some(x=>x.tag===e.tag));if(!pool.length)pool=source.filter(e=>!selected.some(x=>x.id===e.id)&&state.day-(history[e.id]??-999)>=28);if(!pool.length)pool=source.filter(e=>!selected.some(x=>x.id===e.id));const weighted=pool.flatMap(e=>Array(events.includes(e)?3:1).fill(e));if(weighted.length)selected.push(weighted[Math.floor(Math.random()*weighted.length)])}
     draw(singles);while(selected.length<3)draw(all);
-    return selected.map(e=>({id:e.id,done:false}));
+    return selected.map(e=>e.kind==='aiInvite'?{id:e.id,event:e,done:false}:{id:e.id,done:false});
   },pick(state,legacy){
     const history=state.campusEventHistory||(state.campusEventHistory={});
     const due=(state.campusEventPending||[]).find(x=>x.day<=state.day&&followups[x.source]);
