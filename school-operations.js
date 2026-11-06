@@ -1,0 +1,20 @@
+/* Market supply, office discounts, sponsorship risk and once-per-tier comforts. */
+(function(){
+  'use strict';
+  const R=window.SchoolRules,D=window.GAME_DATA;
+  const level=(s,id)=>s.facilities.find(f=>f.id===id)?.level||0;
+  const marketCapacity=s=>30+Math.max(0,level(s,'office')-1)*5;
+  const hireDiscount=s=>R.round(Math.min(.27,Math.max(0,level(s,'office')-1)*.03));
+  const hireCost=(s,t)=>Math.round(t.signing*(1-hireDiscount(s)));
+  function eligible(s,staff){const unavailable=new Set([...s.staffIds,...s.candidateIds,...Object.values(s.roles),...s.dismissedIds,...(s.exchangeTrips||[]).filter(t=>t.status==='away').map(t=>t.staffId)]);return staff.filter(t=>!unavailable.has(t.id))}
+  function shuffled(list,seed){const rng=D.mulberry32(seed),out=[...list];for(let i=out.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[out[i],out[j]]=[out[j],out[i]]}return out}
+  function market(s,staff,refresh=false){s.market??={generation:0,rosterIds:[]};const pool=eligible(s,staff),valid=new Set(pool.map(t=>t.id)),previous=s.market.rosterIds.filter(id=>valid.has(id)),capacity=Math.min(marketCapacity(s),pool.length);if(refresh){s.market.generation++;const fresh=pool.filter(t=>!previous.includes(t.id)),fallback=pool.filter(t=>previous.includes(t.id));s.market.rosterIds=[...shuffled(fresh,8171+s.market.generation*7919),...shuffled(fallback,713+s.market.generation)].slice(0,capacity).map(t=>t.id);s.market.lastRefreshDay=s.day;s.recruitSeed=s.market.generation}else{s.market.rosterIds=previous.slice(0,capacity);const extra=shuffled(pool.filter(t=>!s.market.rosterIds.includes(t.id)),8171+s.market.generation*7919);s.market.rosterIds.push(...extra.slice(0,capacity-s.market.rosterIds.length).map(t=>t.id))}return{ids:[...s.market.rosterIds],capacity:marketCapacity(s),newCount:s.market.rosterIds.filter(id=>!previous.includes(id)).length}}
+  function ensure(s,staff){s.facilityMilestones??={};for(const id of ['dorm','canteen'])s.facilityMilestones[id]??=Array.from({length:level(s,id)},(_,i)=>i+1);market(s,staff);return s}
+  const sponsorChance=s=>R.round(D.clamp(.15+s.prestige*.007,.15,.85));
+  function sponsor(s,principal,rng=Math.random){const chance=sponsorChance(s),success=rng()<chance;return{chance,success,amount:success?Math.round(20000+principal.stats[2]*650+s.prestige*450+rng()*45000):0}}
+  const comfort=id=>id==='dorm'?3:id==='canteen'?2:0;
+  function upgradeComfort(s,f){const amount=comfort(f.id);if(!amount)return 0;const claimed=s.facilityMilestones[f.id];if(claimed.includes(f.level))return 0;const before=s.students.reduce((n,t)=>n+t.anger,0)/s.students.length;s.students.forEach(t=>t.anger=R.clamp(t.anger-amount));claimed.push(f.level);return R.round(before-s.students.reduce((n,t)=>n+t.anger,0)/s.students.length)}
+  function updateForm(s){const avg=key=>s.students.reduce((sum,t)=>sum+(key==='mindset'?t.stats[2]:t.anger),0)/Math.max(1,s.students.length),current={morale:s.schoolMorale,mindset:avg('mindset'),anger:avg('anger')};s.recentForm??={...current};Object.keys(current).forEach(k=>s.recentForm[k]=R.round(s.recentForm[k]*.75+current[k]*.25))}
+  function examPerformance(s,students,rng=Math.random){const avg=i=>students.reduce((n,t)=>n+(i===2?t.stats[2]:t.anger),0)/Math.max(1,students.length),recent=s.recentForm||{morale:s.schoolMorale,mindset:avg(2),anger:avg(0)},morale=recent.morale*.6+s.schoolMorale*.4,mindset=recent.mindset*.5+avg(2)*.5,anger=recent.anger*.4+avg(0)*.6,chance=R.round(D.clamp(.025+Math.max(0,morale-60)*.002+Math.max(0,mindset-60)*.0015-Math.max(0,anger-40)*.001,.01,.16)),teamBurst=rng()<chance,teamBonus=teamBurst?6+rng()*6:0,bonuses={};let standouts=0;students.forEach(t=>{const p=D.clamp(.03+Math.max(0,t.stats[2]-60)*.0016+Math.max(0,morale-60)*.0012-Math.max(0,t.anger-35)*.001,.01,.16),individual=rng()<p;if(individual)standouts++;bonuses[t.id]=R.round(teamBonus+(individual?8+rng()*10:0))});return{chance,teamBurst,standouts,bonuses,averageGain:0}}
+  window.SchoolOperations={marketCapacity,hireDiscount,hireCost,market,ensure,sponsorChance,sponsor,comfort,upgradeComfort,updateForm,examPerformance};
+})();

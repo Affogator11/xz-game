@@ -25,7 +25,7 @@
     $$('button', el).forEach(b => b.addEventListener('click', () => change(b.dataset.focus)));
   }
   function pager(container, rows, page, change) {
-    const size = 8, pages = Math.ceil(rows.length / size);
+    const size = 6, pages = Math.ceil(rows.length / size);
     page = Math.max(0, Math.min(page, pages - 1));
     rows.forEach((row, i) => row.hidden = i < page * size || i >= (page + 1) * size);
     container.hidden = pages <= 1;
@@ -38,7 +38,7 @@
     actions = api;
     $$('#main-nav [data-view]').forEach(b => {
       $('.nav-icon', b).innerHTML = icon(b.dataset.view);
-      if (b.dataset.view === 'overview') b.lastElementChild.textContent = '校园';
+      const labels={overview:['校园','校园'],map:['学校联赛','联赛'],people:['组织人事','人事'],students:['学生学业','学生'],policies:['学校政策','政策'],finance:['财务资产','财务'],actions:['校长行动','行动']},label=labels[b.dataset.view];b.lastElementChild.innerHTML=`<span class="nav-full">${label[0]}</span><span class="nav-short">${label[1]}</span>`;b.setAttribute('aria-label',label[0]);
     });
     $('#ui-brief-button').onclick = () => resume();
     $('#ui-help-button').onclick = () => $('#ui-help').showModal();
@@ -120,7 +120,6 @@
     $('#ui-policy-note').textContent = `当前平均愤怒 ${anger.toFixed(2)}。每次只调整一项制度，留出时间观察学生的反应。`;
     $('#ui-finance-note').textContent = `可用资金 ${money(state.money)}。先选校园区域，再决定升级；经费与账本可随时切换。`;
     $('#ui-action-note').textContent = `本周还可使用 ${state.actionPoints} 点行动力。选一个经营方向，把有限的时间花在最需要的地方。`;
-    $('#ui-map-note').textContent = `全市第 ${rank} 名。点击学校预约联考或派遣行政人员学习交流。`;
     // Core school health first. The other six remain behind an explicit reveal.
     const metrics = $$('#metric-grid .metric-card');
     metrics.forEach(card=>card.classList.remove('ui-extra-metric')); 

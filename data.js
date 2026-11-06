@@ -117,7 +117,7 @@
     {id:'visit',mark:'访',title:'家校共育走访',desc:'入户走访，持续改善学生自律、心态与社会口碑。',money:10000,ap:2,effects:{morale:3,prestige:3,authority:1},policy:{days:21,studentDiscipline:.018,studentMindset:.02}},
     {id:'club',mark:'艺',title:'校园文化节',desc:'让分数之外的天赋被看见，改善心态与校园认同。',money:58000,ap:2,effects:{morale:6,prestige:5,staffSatisfaction:1},policy:{days:14,studentMindset:.045,studentSocial:.025}},
     {id:'recruit',mark:'才',title:'发布人才招聘',desc:'刷新一批可签约的教师与管理人才，需要预留签约金。',money:7000,ap:1,effects:{recruit:true}},
-    {id:'sponsor',mark:'助',title:'拜访校友企业',desc:'争取社会资助，但结果受校长沟通能力和学校声望影响。',money:2500,ap:2,effects:{sponsor:true}},
+    {id:'sponsor',mark:'助',title:'拜访校友企业',desc:'声望决定成功率，沟通影响资助金额；未获资助也会消耗费用。',money:2500,ap:2,effects:{sponsor:true}},
     {id:'safety',mark:'安',title:'校园安全排查',desc:'检查校舍、食堂和门禁，稳定秩序并降低风险。',money:16000,ap:1,effects:{safety:6,staffSatisfaction:1},policy:{days:30,studentDiscipline:.012,studentMindset:.008}},
     {id:'public',mark:'宣',title:'开放日与招生宣讲',desc:'向全县展示课堂和社团，争夺下一届优质生源。',money:32000,ap:2,effects:{prestige:4,power:1,authority:1}},
     {id:'care',mark:'心',title:'学生心理关怀月',desc:'筛查压力风险并开展团辅，持续改善学生心态。',money:38000,ap:2,effects:{morale:7,teacherSatisfaction:1},policy:{days:30,studentMindset:.052,studentDiscipline:.006}},
