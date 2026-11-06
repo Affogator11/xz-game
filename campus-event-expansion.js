@@ -47,9 +47,9 @@
   const labels={money:'资金',safety:'安全',studentSatisfaction:'学生满意',teacherSatisfaction:'教师满意',staffSatisfaction:'职工满意',teaching:'教学',academics:'学业',prestige:'声望',authority:'权威'};
   function hint(effect){return Object.entries(effect).map(([k,v])=>`${labels[k]} ${v>0?'+':''}${v}`).join('，')}
   const conditions={
-    rain_roof:s=>s.safety<85,canteen_price:s=>s.studentSatisfaction<80,
+    rain_roof:s=>s.stability<85,canteen_price:s=>s.studentSatisfaction<80,
     dorm_sleep:s=>s.studentSatisfaction<80,teacher_mentor:s=>s.teacherSatisfaction<85,
-    lab_safety:s=>s.safety<85,exam_review:s=>s.examCount>0,
+    lab_safety:s=>s.stability<85,exam_review:s=>s.examCount>0,
     teacher_leave:s=>s.teacherSatisfaction<75,homework_load:s=>s.studentSatisfaction<75,
     counseling_hours:s=>s.studentSatisfaction<75,staff_meal:s=>s.staffSatisfaction<75,
     scholarship_rules:s=>s.studentSatisfaction<80

@@ -8,10 +8,10 @@
   const staffTraits = ['因材施教','题海专家','课堂掌控','竞赛教练','耐心细致','数据敏锐','家校能手','课程革新','铁面无私','温和坚定','资源整合','青年先锋','稳定军心','高考研究','行政老练','招生伯乐'];
   const studentTraits = ['专注','好奇','韧性','领袖气质','偏科','抗压','慢热','社交达人','竞赛苗子','体育健将','文艺骨干','情绪敏感','自我驱动','后程发力'];
   const principalData = [
-    {id:'lin',name:'林守正',age:52,title:'实干派校长',trait:'稳扎稳打',desc:'从教三十年，熟悉县中每一个齿轮。行政成本降低 12%，每月额外恢复 1 点行动力。',bonus:{admin:12,ap:1},stats:[82,68,76,88,65,72]},
+    {id:'lin',name:'林守正',age:52,title:'实干派校长',trait:'稳扎稳打',desc:'从教三十年，熟悉县中每一个齿轮。行政成本降低 12%，每周多 1 点行动力。',bonus:{admin:12,ap:1},stats:[82,68,76,88,65,72]},
     {id:'xu',name:'许知微',age:41,title:'改革派校长',trait:'课程革新',desc:'省级教研名师，擅长用课程改革撬动成绩。教研行动效果提高 25%，教师成长加快。',bonus:{teaching:25,growth:15},stats:[71,92,66,74,83,78]},
     {id:'gao',name:'高景行',age:46,title:'资源型校长',trait:'八面玲珑',desc:'曾在教育局工作，善于争取资源。政府拨款提高 15%，校际交流关系收益翻倍。',bonus:{grant:15,relation:100},stats:[86,72,91,65,75,84]},
-    {id:'hou',name:'侯鸿杰',age:44,title:'激励型校长',trait:'振奋人心',desc:'擅长在关键时刻凝聚学生。可消耗 5 点权威使下一场考试全体成绩提高 10%；平时可消耗 10 点权威，使全校学生愤怒降低 5 点。',bonus:{inspire:true},stats:[78,80,90,83,76,88]}
+    {id:'hou',name:'侯鸿杰',age:44,title:'激励型校长',trait:'振奋人心',desc:'擅长在关键时刻凝聚学生。可消耗 5 点权威使下一场考试全体原始成绩提高 10%（高分受边际衰减）；平时可消耗 10 点权威，使全校学生愤怒降低 5 点。',bonus:{inspire:true},stats:[78,80,90,83,76,88]}
   ];
 
   const schools = [
@@ -124,58 +124,7 @@
     {id:'austerity',mark:'节',title:'开源节流',desc:'压缩全校奖金和非必要支出，立即降低工资，但会严重伤害队伍稳定与校长威信。',money:0,ap:2,effects:{austerity:true,staffSatisfaction:-8,teacherSatisfaction:-12,authority:-4,prestige:-1,teaching:-1}}
   ];
 
-  const events = [
-    {id:'rain',tag:'校园突发',title:'一场秋雨漏进了老教学楼',text:'连续暴雨后，高二楼顶出现渗水。后勤主任说可以先做应急修补，也可以借机彻底翻修。',choices:[
-      {text:'彻底翻修防水层',hint:'支出 ¥80,000；安全 +8，声望 +2',effect:{money:-80000,safety:8,prestige:2}},
-      {text:'先做应急修补',hint:'支出 ¥18,000；安全 +2，可能留下隐患',effect:{money:-18000,safety:2}},
-      {text:'封闭一层教室',hint:'无支出；教学 -2，心态 -2',effect:{teaching:-2,morale:-2}}
-    ]},
-    {id:'donation',tag:'社会关注',title:'一位老校友回来了',text:'毕业二十年的校友提出捐建一间阅读室，但希望以家族名义冠名。',choices:[
-      {text:'接受捐赠并公开致谢',hint:'获得 ¥160,000；声望 +3',effect:{money:160000,prestige:3}},
-      {text:'接受捐赠，不做商业冠名',hint:'获得 ¥90,000；声望 +6',effect:{money:90000,prestige:6}},
-      {text:'婉拒并发起公众募捐',hint:'获得 ¥35,000；社会关系 +5',effect:{money:35000,relation:5}}
-    ]},
-    {id:'phone',tag:'德育现场',title:'晚自习里的手机风波',text:'值班教师一次没收了十七部手机，家长群里争论激烈。政教处等待你的定调。',choices:[
-      {text:'召开学生听证会，重订规则',hint:'行动点 -1；心态 +5，教学 +1',effect:{ap:-1,morale:5,teaching:1}},
-      {text:'严格执行一刀切禁令',hint:'教学 +3；心态 -4',effect:{teaching:3,morale:-4}},
-      {text:'交由各班自行协商',hint:'心态 +2；管理 -2',effect:{morale:2,management:-2}}
-    ]},
-    {id:'teacher',tag:'人才流动',title:'金金高中递来了一份高薪合同',text:'你的数学骨干教师被同县对手挖角。对方给出的工资比现在高出三成。',choices:[
-      {text:'匹配待遇并授予教研职责',hint:'支出 ¥65,000；师资 +3',effect:{money:-65000,teaching:3}},
-      {text:'谈长期成长与住房补贴',hint:'支出 ¥28,000；50% 成功，成功则师资 +2',effect:{money:-28000,chanceTeaching:2}},
-      {text:'尊重选择，启用青年教师',hint:'师资 -2；青年成长 +3',effect:{teaching:-2,teacherGrowth:3}}
-    ]},
-    {id:'competition',tag:'学业荣誉',title:'物理竞赛传来捷报',text:'两名高二学生进入省队候选名单。带队教师建议追加集训预算。',choices:[
-      {text:'全力支持省城集训',hint:'支出 ¥70,000；学业 +4，声望 +4',effect:{money:-70000,academics:4,prestige:4}},
-      {text:'校内集训，控制成本',hint:'支出 ¥22,000；学业 +2',effect:{money:-22000,academics:2}},
-      {text:'以常规高考教学为先',hint:'资金不变；心态 -2',effect:{morale:-2}}
-    ]},
-    {id:'canteen',tag:'后勤民生',title:'食堂菜单引发了投票',text:'学生会收集了许多条菜单建议，后勤处希望在营养、价格和满意度之间找到平衡。',choices:[
-      {text:'升级营养餐并公示成本',hint:'支出 ¥36,000；学生满意 +4，安全 +1',effect:{money:-36000,morale:4,safety:1}},
-      {text:'邀请学生代表参与监督',hint:'行政效率 -1；学生满意 +5，权威 +1',effect:{management:-1,morale:5,authority:1}},
-      {text:'维持原方案',hint:'无支出；学生满意 -2',effect:{morale:-2}}
-    ]},
-    {id:'openclass',tag:'教学现场',title:'一节公开课在全市走红',text:'青年教师的课堂录像被教研员转发，外校提出联合教研邀请。',choices:[
-      {text:'组织全校观摩与复盘',hint:'行动点 -1；教学 +3，教师满意 +2',effect:{ap:-1,teaching:3,teacherSatisfaction:2}},
-      {text:'与外校联合教研',hint:'支出 ¥18,000；教学 +2，校际关系 +4',effect:{money:-18000,teaching:2,relation:4}},
-      {text:'保持低调，奖励教师',hint:'支出 ¥8,000；教师满意 +3',effect:{money:-8000,teacherSatisfaction:3}}
-    ]},
-    {id:'examstress',tag:'学生状态',title:'月考前的走廊格外安静',text:'心理教师发现部分学生压力明显上升，年级组对是否调整晚自习意见不一。',choices:[
-      {text:'减少一节晚自习并开放操场',hint:'学业 -1；学生满意 +4',effect:{academics:-1,morale:4}},
-      {text:'增加心理教师值班',hint:'支出 ¥16,000；学生满意 +3，安全 +1',effect:{money:-16000,morale:3,safety:1}},
-      {text:'维持备考强度',hint:'学业 +2；学生满意 -3',effect:{academics:2,morale:-3}}
-    ]},
-    {id:'bus',tag:'校园安全',title:'校门口接送拥堵升级',text:'放学时段车辆排成长龙，附近居民投诉，保卫处提交了三套疏导方案。',choices:[
-      {text:'开辟临时接送区',hint:'支出 ¥45,000；安全 +5，声望 +1',effect:{money:-45000,safety:5,prestige:1}},
-      {text:'错峰放学',hint:'行政效率 -1；安全 +4',effect:{management:-1,safety:4}},
-      {text:'增派值班教师',hint:'教师满意 -2；安全 +3',effect:{teacherSatisfaction:-2,safety:3}}
-    ]},
-    {id:'alumni',tag:'校友来信',title:'一封来自重点大学的长信',text:'往届毕业生分享了县中学习经历，希望学校更重视自主学习和生涯规划。',choices:[
-      {text:'开设生涯规划讲堂',hint:'支出 ¥20,000；学业 +1，学生满意 +3',effect:{money:-20000,academics:1,morale:3}},
-      {text:'建立校友导师库',hint:'声望 +3，学生满意 +2',effect:{prestige:3,morale:2}},
-      {text:'整理为校史材料',hint:'声望 +2',effect:{prestige:2}}
-    ]}
-  ];
+  const events = [];
 
   function mulberry32(seed){return function(){let t=seed+=0x6D2B79F5;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}}
   function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
@@ -185,12 +134,5 @@
 
   function generateStaff(count=260,seed=260901){const rng=mulberry32(seed);const result=[];for(let i=0;i<count;i++){const stats=[bell(rng,38,96),bell(rng,38,96),bell(rng,35,94),bell(rng,36,95),bell(rng,34,92),bell(rng,38,96)];const overall=Math.round(stats.reduce((a,b)=>a+b,0)/6);const subject=subjects[Math.floor(rng()*subjects.length)];result.push({id:`T${String(i+1).padStart(4,'0')}`,name:makeName(rng),age:23+Math.floor(rng()*36),gender:rng()>.5?'女':'男',subject,years:Math.floor(rng()*32),education:rng()>.8?'硕士':'本科',stats,overall,stars:clamp(Math.ceil(overall/20),1,5),trait:staffTraits[Math.floor(rng()*staffTraits.length)],salary:Math.round((4300+overall*34+rng()*1300)/100)*100,signing:Math.round((15000+overall*850+rng()*25000)/1000)*1000,bio:`${subject}教师，重视${rng()>.5?'课堂结构与反馈':'学生差异与长期成长'}。在上一所学校承担过${rng()>.5?'备课组':'班主任'}工作。`,employed:false,role:null});}return result}
   function generateStudents(count=1200,seed=261001){const rng=mulberry32(seed);const result=[];for(let i=0;i<count;i++){const grade=1+Math.floor(i/400);const classNo=1+(i%6);const elite=classNo===5||classNo===6;const base=elite?70:([49,46,43,47][classNo-1]);const academic=clamp(bell(rng,base-18,elite?98:91,elite?.7:.53),25,99);const stats=[academic,bell(rng,30,96),bell(rng,28,96),bell(rng,30,97),bell(rng,34,98),bell(rng,28,96)];const composite=Math.round(stats[0]*.42+stats[1]*.14+stats[2]*.14+stats[3]*.1+stats[4]*.12+stats[5]*.08);const score=Math.round(320+academic*3.9+stats[1]*.55+stats[2]*.35+rng()*36);result.push({id:`S${String(i+1).padStart(5,'0')}`,name:makeName(rng),gender:rng()>.5?'女':'男',grade,classNo,className:`高${['','一','二','三'][grade]}（${classNo}）班`,track:classNo===4||classNo===6?'文科':'理科',elite,stats,composite,tier:tierOf(composite),trait:studentTraits[Math.floor(rng()*studentTraits.length)],score:clamp(score,300,735),bio:`来自秋丘县${rng()>.5?'城区':'乡镇'}，${studentTraits[Math.floor(rng()*studentTraits.length)]}。`});}return result}
-  function mapCells(){
-    const key={X:'xiang',N:'normal',C:'chang',J:'jia',Y:'yan',U:'yuan',Q:'qiu',I:'jin'};
-    const layout=['XXXXXXNNNN','XXXXXXNNNN','XXXXYYYNNN','XXYYYYYNNN','CCCCYYYUNN','CCCCUUUUII','CCCUUUUUII','CCCQQQQQII','JJJJJJQQQI','JJJJJJQQII'];
-    const seen=new Set();
-    return layout.join('').split('').map((symbol,index)=>{const school=key[symbol],capital=!seen.has(school);seen.add(school);return {index,school,capital}});
-  }
-
-  window.GAME_DATA={principalData,schools,roles,roleDefinitions,facilities,schoolPolicyDefinitions,actions,events,subjects,generateStaff,generateStudents,mapCells,clamp,tierOf,mulberry32};
+  window.GAME_DATA={principalData,schools,roles,roleDefinitions,facilities,schoolPolicyDefinitions,actions,events,subjects,generateStaff,generateStudents,clamp,tierOf,mulberry32};
 })();

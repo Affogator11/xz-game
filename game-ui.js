@@ -10,7 +10,7 @@
   let current, actions, lastPeopleSearch = '', lastRosterSearch = '';
   const paths = {
     overview:'M3 10l9-7 9 7v10H3zM9 20v-7h6v7',
-    map:'M3 5l6-2 6 3 6-2v16l-6 2-6-3-6 2zM9 3v16m6-13v16',
+    map:'M8 3h8v5a4 4 0 01-8 0zM8 5H4v2a4 4 0 004 4m8-6h4v2a4 4 0 01-4 4M12 12v6m-4 3h8m-6-3h4',
     people:'M16 21v-3a4 4 0 00-4-4H6a4 4 0 00-4 4v3m18 0v-3a4 4 0 00-3-4M9 10a4 4 0 100-8 4 4 0 000 8m7-7a4 4 0 010 7',
     students:'M3 4h7a3 3 0 013 3v14a4 4 0 00-4-2H3zm18 0h-5a3 3 0 00-3 3v14a4 4 0 014-2h4z',
     policies:'M5 3h14v18H5zM9 8h6m-6 4h6m-6 4h4',
@@ -25,7 +25,7 @@
     $$('button', el).forEach(b => b.addEventListener('click', () => change(b.dataset.focus)));
   }
   function pager(container, rows, page, change) {
-    const size = 12, pages = Math.ceil(rows.length / size);
+    const size = 8, pages = Math.ceil(rows.length / size);
     page = Math.max(0, Math.min(page, pages - 1));
     rows.forEach((row, i) => row.hidden = i < page * size || i >= (page + 1) * size);
     container.hidden = pages <= 1;
@@ -39,12 +39,6 @@
     $$('#main-nav [data-view]').forEach(b => {
       $('.nav-icon', b).innerHTML = icon(b.dataset.view);
       if (b.dataset.view === 'overview') b.lastElementChild.textContent = '校园';
-    });
-    $('#ui-more-metrics').addEventListener('click', e => {
-      const open = e.currentTarget.getAttribute('aria-expanded') !== 'true';
-      e.currentTarget.setAttribute('aria-expanded', String(open));
-      e.currentTarget.textContent = open ? '收起详细校情 −' : '查看全部校情 +';
-      $('#metric-grid').classList.toggle('expanded', open);
     });
     $('#ui-brief-button').onclick = () => resume();
     $('#ui-help-button').onclick = () => $('#ui-help').showModal();
@@ -99,20 +93,22 @@
   function render(state, context) {
     if (!state) return;
     current = state;
-    const ranked = [...state.schools].sort((a,b) => b.power-a.power), rank = ranked.findIndex(s => s.id === 'qiu')+1;
-    const rival = ranked[rank-2], gap = rival ? Math.max(0,rival.power-state.power) : 0;
-    $('#ui-week').textContent = `任期第 ${Math.floor((state.day-1)/7)+1} 周`;
+    const exchangeNotice=state.exchangeRequests.some(x=>x.status==='accepted');$('#main-nav [data-view=map]').dataset.notice=String(exchangeNotice);
+
+    const ranked = SchoolRules.ranking(state), rank = ranked.findIndex(s => s.id === 'qiu')+1;
+    const rival = ranked[rank-2], gap = rival ? Math.max(0,state.league.points[rival.id]-state.league.points.qiu) : 0;
+    $('#ui-week').textContent = `第 ${Math.floor((state.day-1)/7)+1} 周`;
     $('#ui-chapter').textContent = rank <= 3 ? '第三章 · 向地方强校迈进' : rank <= 5 ? '第二章 · 在全市站稳脚跟' : '第一章 · 从一所县中开始';
     $('#ui-goal-title').textContent = rival ? `下一站，超越${rival.short || rival.name}` : '守住全市第一的荣光';
-    $('#ui-goal-copy').textContent = rival ? `全市第 ${rank} 名 · 距前一名还差 ${gap.toFixed(1)} 综合实力` : '教学、队伍与校园生活，都是守住领先的根基。';
-    $('#ui-goal-progress').style.width = `${rival ? Math.min(100,state.power/Math.max(1,rival.power)*100) : 100}%`;
-    $('#ui-goal-bar').setAttribute('aria-valuenow', String(Math.round(rival ? Math.min(100,state.power/Math.max(1,rival.power)*100) : 100)));
+    $('#ui-goal-copy').textContent = rival ? `全市第 ${rank} 名 · 距前一名还差 ${gap.toFixed(2)} 积分` : '教学、队伍与校园生活，都是守住领先的根基。';
+    $('#ui-goal-progress').style.width = `${rival ? Math.min(100,state.league.points.qiu/Math.max(1,state.league.points[rival.id])*100) : 100}%`;
+    $('#ui-goal-bar').setAttribute('aria-valuenow', String(Math.round(rival ? Math.min(100,state.league.points.qiu/Math.max(1,state.league.points[rival.id])*100) : 100)));
     $('#ui-ap-count').textContent = `${state.actionPoints} / ${state.maxActionPoints}`;
     $('#ui-ap-pips').innerHTML = Array.from({length:state.maxActionPoints}, (_,i) => `<i class="${i < state.actionPoints ? 'filled' : ''}"></i>`).join('');
     const remaining = state.weeklyBrief?.items.filter(x => !x.done).length || 0;
     $('#ui-brief-button').textContent = state.eventFeedback ? '查看批示结果 →' : remaining ? `处理工作简报 · ${remaining} 项 →` : state.pendingCampusEvent ? '处理校园来文 →' : '安排本周工作 →';
     $('#ui-week-note').textContent = remaining ? '校务等待你的批示，处理后即可继续推进。' : state.actionPoints ? '先花一点时间经营校园，再迎接新的一周。' : '行动点已用完。推进校历，周一恢复行动点。';
-    $('#ui-priorities').innerHTML = context.advice.slice(0,3).map((item,i) => `<button class="quest-row" data-quest="${i}"><span class="quest-number">0${i+1}</span><span><b>${escape(item.title)}</b><small>${escape(item.reason)}</small></span><span aria-hidden="true">↗</span></button>`).join('');
+    $('#ui-priorities').innerHTML = context.advice.slice(0,3).map((item,i) => `<button class="quest-row" data-quest="${i}"><span class="quest-number">0${i+1}</span><span><b>${escape(item.title)}</b></span><span aria-hidden="true">↗</span></button>`).join('');
     $$('[data-quest]').forEach(b => b.onclick = () => {
       const item=context.advice[Number(b.dataset.quest)], id=item.id.replace('action-','');
       if(item.view==='actions')ui.action=['teach','materials'].includes(id)?'教学与成绩':['visit','club','care','safety'].includes(id)?'学生与校园':id==='austerity'?'财政管理':'人才与资源';
@@ -121,13 +117,13 @@
     $('#ui-people-note').textContent = `管理岗已任命 ${Object.keys(state.roles).length} / 12 · 待任人才 ${state.candidateIds.length} 人。先组建班子，再精调师资。`;
     $('#ui-student-note').textContent = `${state.students.length} 名学生的成长正在发生。先选年级，再走进班级安排教师、关心学生。`;
     const anger = state.students.reduce((sum,s) => sum+s.anger,0)/Math.max(1,state.students.length);
-    $('#ui-policy-note').textContent = `当前平均愤怒 ${anger.toFixed(1)}。每次只调整一项制度，留出时间观察学生的反应。`;
+    $('#ui-policy-note').textContent = `当前平均愤怒 ${anger.toFixed(2)}。每次只调整一项制度，留出时间观察学生的反应。`;
     $('#ui-finance-note').textContent = `可用资金 ${money(state.money)}。先选校园区域，再决定升级；经费与账本可随时切换。`;
     $('#ui-action-note').textContent = `本周还可使用 ${state.actionPoints} 点行动力。选一个经营方向，把有限的时间花在最需要的地方。`;
-    $('#ui-map-note').textContent = `全市第 ${rank} 名。点击相邻势力了解对手，预约联考，逐步扩大秋秋一中的影响力。`;
+    $('#ui-map-note').textContent = `全市第 ${rank} 名。点击学校预约联考或派遣行政人员学习交流。`;
     // Core school health first. The other six remain behind an explicit reveal.
     const metrics = $$('#metric-grid .metric-card');
-    metrics.forEach((card,i) => card.classList.toggle('ui-extra-metric', ![0,1,3,6].includes(i)));
+    metrics.forEach(card=>card.classList.remove('ui-extra-metric')); 
     ['people','students','policies','finance','actions'].forEach(name => section(name,state));
     $$('#main-nav .nav-item').forEach(b => b.setAttribute('aria-current', b.classList.contains('active') ? 'page' : 'false'));
   }
@@ -157,12 +153,12 @@
   function students() {
     const classes = $('.student-tabs .active')?.dataset.studentTab === 'classes';
     $('#ui-grade-tabs').hidden = !classes;
-    tabs('ui-grade-tabs', [['1','高一 · 新的起点'],['2','高二 · 积蓄力量'],['3','高三 · 全力冲刺'],['all','全部班级']], ui.grade, value => {ui.grade=value;students();});
+    tabs('ui-grade-tabs', [['1','高一'],['2','高二'],['3','高三'],['all','全部']], ui.grade, value => {ui.grade=value;students();});
     $$('#class-grid [data-class]').forEach(card => card.hidden = ui.grade !== 'all' && card.dataset.class.split('-')[0] !== ui.grade);
     $$('#grade-summary .metric-card').slice(0,3).forEach((card,i)=>{
       card.setAttribute('role','button');card.setAttribute('aria-label',`查看高${['一','二','三'][i]}年级的班级`);card.setAttribute('aria-pressed',String(ui.grade===String(i+1)));card.classList.toggle('selected-grade',ui.grade===String(i+1));
       card.onclick=()=>{ui.grade=String(i+1);students();};card.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();card.click();}};
-      if(!$('.grade-enter',card)){const label=document.createElement('span');label.className='grade-enter';label.textContent='走进年级 →';card.append(label);}
+      if(!$('.grade-enter',card)){const label=document.createElement('span');label.className='grade-enter';label.textContent='' ;card.append(label);}
     });
     const search = ['#grade-filter','#tier-filter','#student-search'].map(s => $(s).value).join('|');
     if (search !== lastRosterSearch) { ui.rosterPage=0; lastRosterSearch=search; }
