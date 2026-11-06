@@ -6,7 +6,8 @@
   <meta name="theme-color" content="#17372e">
   <meta name="description" content="秋秋一中校长模拟器：一款离线可玩的学校经营策略游戏。">
   <title>秋秋一中：校长志</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=20261106">
+  <link rel="stylesheet" href="game-ui.css?v=20261106">
 </head>
 <body>
   <a class="skip-link" href="#main">跳到主要内容</a>
@@ -20,7 +21,7 @@
       <p class="start-lead">一所县中，一纸任命，一段足以改变数千人命运的任期。</p>
       <button id="new-game-btn" class="btn btn-primary btn-large">签署任命书</button>
       <button id="continue-btn" class="btn btn-ghost btn-large" hidden>继续上次任期</button>
-      <p class="start-foot">完全离线 · 自动存档 · 静态 HTML</p>
+      <p class="start-foot">经营一所县中，改变一群人的未来 · 自动存档</p>
     </div>
   </section>
 
@@ -47,7 +48,8 @@
 
   <div id="game-shell" class="game-shell" hidden>
     <header class="topbar">
-      <div class="brand"><span class="seal">秋</span><div><strong>秋秋一中</strong><small>QIŪQIŪ NO.1 HIGH SCHOOL</small></div></div>
+      <button id="ui-mobile-help" class="mobile-help" aria-label="打开游玩指南">?</button>
+      <div class="brand"><span class="seal">秋</span><div><strong>秋秋一中</strong><small>校 长 志 · 县 中 物 语</small></div></div>
       <div class="top-stats" aria-label="学校核心状态">
         <div class="date-stat"><span>校历</span><strong id="date-label">2022年7月1日</strong><small id="date-sub-label">星期五 · 暑假</small></div>
         <div><span>资金</span><strong id="money-label">¥ 0</strong></div>
@@ -64,7 +66,7 @@
     </header>
 
     <aside class="sidebar" aria-label="主导航">
-      <nav id="main-nav">
+      <p class="nav-caption">校 长 的 一 天</p><nav id="main-nav">
         <button class="nav-item active" data-view="overview"><span class="nav-icon">⌂</span><span>校务总览</span></button>
         <button class="nav-item" data-view="map"><span class="nav-icon">◇</span><span>实力版图</span></button>
         <button class="nav-item" data-view="people"><span class="nav-icon">♙</span><span>组织人事</span></button>
@@ -75,26 +77,26 @@
       </nav>
       <div class="sidebar-bottom">
         <div class="term-progress"><span>任期进度</span><div class="progress"><i id="term-progress"></i></div><small id="term-days">第 1 / 1095 天</small></div>
-        <button id="reset-btn" class="text-btn">重新开始</button>
+        <button id="ui-help-button" class="btn btn-secondary">游玩指南</button><p class="ui-save-note">每次操作后自动存档</p><button id="reset-btn" class="text-btn">重新开始</button>
       </div>
     </aside>
 
     <main id="main" class="main-content" tabindex="-1">
       <section id="view-overview" class="view active" aria-labelledby="overview-title">
-        <div class="page-head desk-page-head"><div><p class="eyebrow">校长办公室 · 今日值班</p><h2 id="overview-title">早上好，<span id="principal-name">校长</span></h2><p id="daily-brief">新学期的第一缕晨光落在教学楼前。</p></div><div class="page-head-actions"><button id="secretary-btn" class="btn btn-primary">秘书建议</button><button class="btn btn-secondary" data-view-jump="actions">安排本周工作</button></div></div>
+        <div class="page-head desk-page-head"><div><p class="eyebrow" id="ui-week">任期第 1 周</p><h2 id="overview-title">早上好，<span id="principal-name">校长</span></h2><p id="daily-brief"></p></div><button id="secretary-btn" class="btn btn-secondary">听听秘书的建议</button></div>
+        <div class="campus-stage-grid">
+          <section class="campus-stage" aria-label="秋秋一中校园">
+            <img src="assets/campus-hero.png" alt="晨光落在秋秋一中的校门与教学楼前" width="1792" height="1008">
+            <div class="campus-stage-shade"></div><span class="campus-stage-tag">香香市 · 秋秋一中</span>
+            <div class="campus-stage-story"><p id="ui-chapter">第一章 · 从一所县中开始</p><h3>让这所学校，<br>成为他们的骄傲。</h3><span id="desk-stability-note">校园运行平稳</span></div>
+            <div class="campus-stage-stats"><span><small>在校学生</small><b id="student-count">420</b></span><span><small>教职团队</small><b id="staff-count">0</b></span><span><small>综合实力</small><b id="power-label">52</b></span></div>
+          </section>
+          <section class="week-mission card"><p class="eyebrow">校长，请批示</p><h3>这一周，由你决定</h3><div class="ui-ap"><span>本周行动力</span><b id="ui-ap-count">4 / 4</b></div><div id="ui-ap-pips" class="ap-pips" aria-hidden="true"></div><p id="ui-week-note"></p><button id="ui-brief-button" class="btn btn-primary btn-block">安排本周工作 →</button><div class="weekly-priorities-head"><span>秘书圈出的重点</span><small>根据当前校情推荐</small></div><div id="ui-priorities"></div></section>
+        </div>
+        <section class="school-journey"><div class="journey-seal" aria-hidden="true">志</div><div><p class="kicker">强校之路</p><h3 id="ui-goal-title">从全市第七出发</h3><p id="ui-goal-copy"></p><div id="ui-goal-bar" class="journey-progress" role="progressbar" aria-label="与前一名学校的综合实力比例" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="ui-goal-progress"></i></div></div><button class="btn btn-secondary" data-view-jump="map">看看全市对手 ↗</button></section>
+        <div class="section-heading"><div><p class="kicker">校园的温度</p><h3>把成绩，也把人放在心上</h3></div><button id="ui-more-metrics" class="text-btn" aria-expanded="false" aria-controls="metric-grid">查看全部校情 +</button></div>
         <div class="metric-grid office-metric-grid" id="metric-grid"></div>
-        <section class="principal-desk" aria-label="校长办公桌功能入口">
-          <div class="desk-edge" aria-hidden="true"></div>
-          <div class="desk-nameplate"><small>秋秋一中</small><strong>校长办公桌</strong><span id="desk-stability-note">校园运行平稳</span></div>
-          <button class="desk-object object-map" data-view-jump="map" aria-label="打开实力版图"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M8 14l15-6 18 7 15-6v41l-15 6-18-7-15 6zM23 8v41m18-34v41"/></svg><span>香香市地图</span><small>实力版图</small></button>
-          <button class="desk-object object-people" data-view-jump="people" aria-label="打开组织人事"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M14 12h36v44H14zM22 12V7h20v5M22 25h20M22 34h20M22 43h13"/></svg><span>人事档案</span><small>领导与教师</small></button>
-          <button class="desk-object object-students" data-view-jump="students" aria-label="打开学生学业"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M10 12h38a6 6 0 016 6v36H16a6 6 0 01-6-6zM18 23h28M18 32h28M18 41h18"/></svg><span>班级花名册</span><small>成绩与愤怒</small></button>
-          <button class="desk-object object-policy" data-view-jump="policies" aria-label="打开学校政策"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M12 8h40v48H12zM20 19h24M20 29h24M20 39h16M43 43l5 5 9-12"/></svg><span>红头文件</span><small>学校政策</small></button>
-          <button class="desk-object object-finance" data-view-jump="finance" aria-label="打开财务资产"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M13 8h38v48H13zM20 16h24v9H20zM21 34h3m8 0h3m8 0h3M21 43h3m8 0h3m8 0h3"/></svg><span>账本与计算器</span><small>财务资产</small></button>
-          <button class="desk-object object-actions" data-view-jump="actions" aria-label="打开校长行动"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M16 10h32v44H16zM24 6v8m16-8v8M22 25h20M22 34h20M22 43h12"/></svg><span>工作日程本</span><small>校长行动</small></button>
-          <div class="desk-summary-paper"><p>今日校情摘要</p><div><span>综合实力</span><strong id="power-label">0</strong></div><div><span>在校生</span><strong id="student-count">0</strong></div><div><span>教职工</span><strong id="staff-count">0</strong></div><div><span>待办</span><strong id="pending-count">0</strong></div></div>
-          <div class="desk-seal" aria-hidden="true">秋</div>
-        </section>
+        <details id="ui-archive" class="campus-archive"><summary><span>校务手记</span><small>台历 · 待办 · 校内消息 · 发展曲线</small><b aria-hidden="true">＋</b></summary><span id="pending-count" hidden>0</span>
         <div class="desk-lower-grid">
           <section class="card calendar-card">
             <div class="card-head"><div><p class="kicker">桌面台历</p><h3 id="calendar-title">2022 年 7 月</h3></div><div class="calendar-controls"><button class="icon-btn" id="calendar-prev" aria-label="上个月">‹</button><button class="text-btn" id="calendar-today">回到本月</button><button class="icon-btn" id="calendar-next" aria-label="下个月">›</button></div></div>
@@ -104,11 +106,12 @@
           <section class="card agenda-card"><div class="card-head"><div><p class="kicker">压在镇纸下</p><h3>本周待办</h3></div></div><div id="agenda-list" class="agenda-list"></div></section>
           <section class="card notice-card"><div class="card-head"><div><p class="kicker">校内简报</p><h3>最新来文</h3></div></div><div id="news-feed" class="news-feed" aria-live="polite"></div></section>
           <section class="card trend-card"><div class="card-head"><div><p class="kicker">近 8 周</p><h3>学校发展曲线</h3></div><span class="legend"><i></i>综合实力</span></div><canvas id="trend-chart" height="170" aria-label="学校近八周综合实力折线图"></canvas></section>
-        </div>
+        </div></details>
       </section>
 
       <section id="view-map" class="view" aria-labelledby="map-title">
-        <div class="page-head"><div><p class="eyebrow">香香市教育版图</p><h2 id="map-title">百校竞流，寸土必争</h2><p>100 个影响力格代表全市优质生源、师资与社会认同。点击地块选择学校。</p></div><div class="map-mode"><button class="seg active">综合实力</button><button class="seg">升学影响</button></div></div>
+        <div class="page-head"><div><p class="eyebrow">香香市教育版图</p><h2 id="map-title">走出校门，看见对手</h2><p>点击地块认识对手，用联考与长期经营争取更大的影响力。</p></div><span class="location-label">校际竞争</span></div>
+        <div class="location-guide"><span aria-hidden="true">竞</span><p id="ui-map-note"></p></div>
         <div class="map-layout">
           <section class="strategy-map-wrap card"><div id="strategy-map" class="strategy-map" role="grid" aria-label="香香市学校实力版图"></div><div id="map-legend" class="map-legend"></div></section>
           <aside id="school-inspector" class="school-inspector card"></aside>
@@ -116,29 +119,37 @@
       </section>
 
       <section id="view-people" class="view" aria-labelledby="people-title">
-        <div class="page-head"><div><p class="eyebrow">组织与人才</p><h2 id="people-title">知人善任，方能兴校</h2><p>岗位带来管理增益，也会产生工资与磨合成本。</p></div><button id="open-recruit-btn" class="btn btn-primary">打开人才市场</button></div>
+        <div class="page-head"><div><p class="eyebrow">组织与人才</p><h2 id="people-title">一所好学校，从一群好老师开始</h2><p>岗位带来管理增益，也会产生工资与磨合成本。</p></div><button id="open-recruit-btn" class="btn btn-primary">打开人才市场</button></div>
+        <div class="location-guide"><span aria-hidden="true">人</span><p id="ui-people-note"></p></div>
         <div class="people-tabs"><button class="seg active" data-people-tab="management">管理层</button><button class="seg" data-people-tab="teachers">教师队伍</button><button class="seg" data-people-tab="candidates">待任人才</button><button class="seg" data-people-tab="market">人才市场</button></div>
+        <div id="ui-people-focus" class="focus-tabs" aria-label="选择管理区域"></div>
         <div id="people-filters" class="people-filters"><label>搜索姓名或岗位 <input id="people-search" type="search" placeholder="输入姓名、科目或班级"></label><label>任教学科 <select id="people-subject"><option value="">全部学科</option><option>语文</option><option>数学</option><option>英语</option><option>物理</option><option>化学</option><option>生物</option><option>政治</option><option>历史</option><option>地理</option><option>体育</option><option>信息</option></select></label><label>最低综合能力 <select id="people-min"><option value="0">不限</option><option value="50">50</option><option value="60">60</option><option value="70">70</option><option value="80">80</option><option value="90">90</option></select></label><span id="people-filter-count" aria-live="polite"></span></div>
-        <div id="people-content"></div>
+        <div id="people-content"></div><div id="ui-people-pager" class="ui-pager" hidden></div>
       </section>
 
       <section id="view-students" class="view" aria-labelledby="students-title">
-        <div class="page-head"><div><p class="eyebrow">三年级部</p><h2 id="students-title">18 个班级，420 段人生</h2><p>学生的能力、心态与习惯共同决定成长轨迹，考试不是唯一刻度。</p></div><button id="exam-btn" class="btn btn-primary">组织全校月考</button></div>
+        <div class="page-head"><div><p class="eyebrow">三年级部</p><h2 id="students-title">走进教室，看看他们的成长</h2><p>每个班级都有自己的故事。选一个年级，走进教室。</p></div><button id="exam-btn" class="btn btn-primary">组织全校月考</button></div>
+        <div class="location-guide"><span aria-hidden="true">学</span><p id="ui-student-note"></p></div>
         <div id="grade-summary" class="metric-grid compact"></div>
         <div class="student-tabs"><button class="seg active" data-student-tab="classes">班级总览</button><button class="seg" data-student-tab="roster">全校名册</button></div>
+        <div id="ui-grade-tabs" class="focus-tabs" aria-label="选择年级"></div>
         <div id="class-grid" class="class-grid"></div>
-        <section id="student-roster-panel" class="card table-card" hidden><div class="table-toolbar"><label>年级 <select id="grade-filter"><option value="all">全部</option><option value="1">高一</option><option value="2">高二</option><option value="3">高三</option></select></label><label>层级 <select id="tier-filter"><option value="all">全部</option><option>尖子生</option><option>优等生</option><option>中等生</option><option>差生</option></select></label><label class="search-box">搜索 <input id="student-search" type="search" placeholder="姓名 / 班级"></label></div><div class="table-scroll"><table><thead><tr><th>学生</th><th>班级</th><th>层级</th><th>学业</th><th>自律</th><th>心态</th><th>愤怒</th><th>潜力</th><th>最近成绩</th></tr></thead><tbody id="student-table"></tbody></table></div><div id="table-note" class="table-note"></div></section>
+        <section id="student-roster-panel" class="card table-card" hidden><div class="table-toolbar"><label>年级 <select id="grade-filter"><option value="all">全部</option><option value="1">高一</option><option value="2">高二</option><option value="3">高三</option></select></label><label>层级 <select id="tier-filter"><option value="all">全部</option><option>尖子生</option><option>优等生</option><option>中等生</option><option>差生</option></select></label><label class="search-box">搜索 <input id="student-search" type="search" placeholder="姓名 / 班级"></label></div><div class="table-scroll"><table><thead><tr><th>学生</th><th>班级</th><th>层级</th><th>学业</th><th>自律</th><th>心态</th><th>愤怒</th><th>潜力</th><th>最近成绩</th></tr></thead><tbody id="student-table"></tbody></table></div><div id="ui-roster-pager" class="ui-pager" hidden></div><div id="table-note" class="table-note"></div></section>
       </section>
 
       <section id="view-policies" class="view" aria-labelledby="policies-title">
-        <div class="page-head"><div><p class="eyebrow">校务制度与学生治理</p><h2 id="policies-title">每一条校规，都会留下回声</h2><p>严格政策能迅速提升秩序，但累积的学生愤怒会削弱稳定度，并可能在联考中引发交白卷。</p></div><div class="policy-ap"><span>修改政策消耗</span><strong>1 行动点</strong></div></div>
+        <div class="page-head"><div><p class="eyebrow">校务制度与学生治理</p><h2 id="policies-title">定下规矩，也听见回声</h2><p>制度改变校园日常，也影响学生的信任。展开一项制度，再做取舍。</p></div><div class="policy-ap"><span>修改政策消耗</span><strong>1 行动点</strong></div></div>
+        <div class="location-guide"><span aria-hidden="true">规</span><p id="ui-policy-note"></p></div>
         <div id="policy-summary" class="policy-summary"></div>
+        <div id="ui-policy-tabs" class="focus-tabs" aria-label="选择制度分类"></div>
         <div id="policy-groups" class="policy-groups"></div>
       </section>
 
       <section id="view-finance" class="view" aria-labelledby="finance-title">
-        <div class="page-head"><div><p class="eyebrow">财务与资产</p><h2 id="finance-title">每一分钱，都要落在校园里</h2><p>分配下月预算，点击校园区域查看升级、降标或变卖方案。</p></div><button id="loan-btn" class="btn btn-danger">申请应急借款</button></div>
+        <div class="page-head"><div><p class="eyebrow">财务与资产</p><h2 id="finance-title">把校园，慢慢建成理想的模样</h2><p>修好一间教室，照顾一顿饭。建设和保障，都需要量力而行。</p></div><button id="loan-btn" class="btn btn-danger">申请应急借款</button></div>
+        <div class="location-guide"><span aria-hidden="true">建</span><p id="ui-finance-note"></p></div>
         <div id="finance-metrics" class="metric-grid compact"></div>
+        <div id="ui-finance-tabs" class="focus-tabs" aria-label="选择财务事项"></div>
         <div class="campus-finance-layout">
           <section class="card campus-plan-card"><div class="card-head"><div><p class="kicker">秋秋一中 · 老校区</p><h3>校园平面图</h3></div><span class="status-pill">点击区域管理资产</span></div><div id="campus-plan" class="campus-plan" aria-label="可交互校园设施平面图"></div></section>
           <aside id="facility-detail" class="card facility-detail" aria-live="polite"></aside>
@@ -148,8 +159,10 @@
       </section>
 
       <section id="view-actions" class="view" aria-labelledby="actions-title">
-        <div class="page-head"><div><p class="eyebrow">校长行动</p><h2 id="actions-title">把战略变成校园里的每一天</h2><p>行动消耗资金、校长精力或人情，每周一恢复行动点。</p></div><div class="action-points"><span>本周行动点</span><strong id="ap-label">0 / 4</strong></div></div>
+        <div class="page-head"><div><p class="eyebrow">校长行动</p><h2 id="actions-title">这周，你想为学校做些什么？</h2><p>行动消耗资金、校长精力或人情，每周一恢复行动点。</p></div><div class="action-points"><span>本周行动点</span><strong id="ap-label">0 / 4</strong></div></div>
+        <div class="location-guide"><span aria-hidden="true">行</span><p id="ui-action-note"></p></div>
         <div id="action-command" class="action-command"></div>
+        <div id="ui-action-tabs" class="focus-tabs" aria-label="选择行动方向"></div>
         <div id="action-grid" class="action-grid"></div>
       </section>
     </main>
@@ -161,6 +174,7 @@
   <div id="battle-modal" class="modal" hidden><div class="modal-backdrop"></div><section class="modal-panel exam-arena-panel" role="dialog" aria-modal="true" aria-labelledby="battle-title"><p class="eyebrow">校际联合考试现场</p><h2 id="battle-title">考场答题竞赛</h2><p id="battle-phase" class="battle-phase">考生正在入场</p><div class="exam-arena"><div class="exam-side home-side"><strong>秋秋一中</strong><div class="student-seats" id="home-seats"></div><div class="score-meter"><i id="home-meter"></i></div><b id="home-live-score">0.00</b></div><div class="exam-center"><span class="paper-stack">卷</span><small>统一试卷<br>同场竞技</small></div><div class="exam-side away-side"><strong id="away-school-name">对手学校</strong><div class="student-seats" id="away-seats"></div><div class="score-meter"><i id="away-meter"></i></div><b id="away-live-score">0.00</b></div></div><div id="battle-result" class="battle-result" hidden></div><button id="battle-close" class="btn btn-primary btn-block" hidden>查看影响力版图</button></section></div>
   <div id="gaokao-season" class="gaokao-season" hidden><section class="gaokao-shell" role="dialog" aria-modal="true" aria-labelledby="gaokao-title"><header><div><p class="eyebrow">6 月 1 日—10 日 · 全市高考季</p><h2 id="gaokao-title">高考冲刺指挥中心</h2><p>此阶段只管理高三。每天自动举行一次模拟考，联考与其他校务暂时冻结。</p></div><div class="gaokao-day"><span>冲刺日程</span><strong id="gaokao-day-label">第 1 / 10 天</strong></div></header><div id="gaokao-metrics" class="gaokao-metrics"></div><div class="gaokao-board"><section><h3>今日冲刺部署</h3><div id="gaokao-actions" class="gaokao-actions"></div></section><section><h3>十日模拟考曲线</h3><div id="gaokao-mocks" class="gaokao-mocks"></div><p id="gaokao-note"></p></section></div><button id="gaokao-next" class="btn btn-primary btn-block">结束今日工作并推进一天</button></section></div>
   <div id="gaokao-result-modal" class="modal" hidden><div class="modal-backdrop"></div><section class="modal-panel gaokao-result-panel" role="dialog" aria-modal="true" aria-labelledby="gaokao-result-title"><p class="eyebrow">香香市普通高考成绩发布会</p><h2 id="gaokao-result-title">年度高考成绩单</h2><div id="gaokao-result-body"></div><button id="gaokao-result-close" class="btn btn-primary btn-block">确认成绩，迎接新学年</button></section></div>
+  <dialog id="ui-help" class="game-help"><header><p class="eyebrow">写给新任校长</p><h2>你的第一周，可以这样开始</h2></header><ol><li><b>先看看校园</b><p>首页的重点工作来自当前校情；详细校历与消息放在“校务手记”。</p></li><li><b>组建队伍，照顾学生</b><p>在人事页按区域任命干部；在学生页选择年级、班级，再安排任课或与学生谈心。</p></li><li><b>做几件值得的事</b><p>校长行动按方向分类，每周一恢复行动点。政策、建设也会影响师生，先看清代价再决定。</p></li><li><b>迎接下一周</b><p>使用推进一天或一周结算校园成长。每周简报有三项事件，批示后查看结果；高考季按天安排。</p></li></ol><p class="help-save">游戏自动保存在当前浏览器。继续任期即可读档。存档不会自动跨设备同步；清除网站数据会删除本机存档。</p><button id="ui-help-close" class="btn btn-primary btn-block">明白了，回校园</button></dialog>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <div id="time-transition" class="time-transition" hidden aria-live="polite"><div class="time-transition-card"><span class="seal">秋</span><p>校历推进中</p><strong id="time-transition-date">下一周</strong><div class="time-progress"><i></i></div><small>学生成长、学校治理与其他学校行动正在结算</small></div></div>
 
@@ -169,6 +183,7 @@
   <script src="campus-event-expansion.js"></script>
   <script src="campus-event-stories.js"></script>
   <script src="campus-events.js"></script>
-  <script src="game.js"></script>
+  <script src="game-ui.js?v=20261106"></script>
+  <script src="game.js?v=20261106"></script>
 </body>
 </html>
