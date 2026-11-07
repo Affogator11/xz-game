@@ -51,6 +51,30 @@ async function main(){
     await screenshot('overhaul-mobile-teachers',375,812);assert.equal(errors.length,0,JSON.stringify(errors));console.log('Layout checks passed.');return;
   }
   await check('all 12 school statuses visible, no safety stat',"[...document.querySelectorAll('#metric-grid .metric-card')].filter(x=>x.getClientRects().length).length===12 && !document.querySelector('#metric-grid').textContent.includes('安全')");
+  // Status guidance uses the same stored values and student actions as ordinary play.
+  await check('home gauges label all twelve school positions and highlight one priority',"[...document.querySelectorAll('#metric-grid .status-meter')].length===12&&document.querySelectorAll('.school-status-card.status-priority').length===1&&document.querySelector('#school-status-priority').getClientRects().length>0");
+  await click('[data-school-metric="teaching"]');
+  await check('school metric explains thresholds and names a concrete action',"document.querySelector('#drawer-body').textContent.includes('70–100 良好')&&document.querySelector('[data-metric-destination]').textContent==='集体教研周'");
+  await click('[data-metric-destination]');
+  await check('metric action jump reveals the right action category',"document.querySelector('[data-action=teach]').getClientRects().length>0&&document.querySelector('#view-actions').classList.contains('active')");
+  const stressed=structuredClone(fresh),student=stressed.students[0];
+  stressed.students.forEach(s=>s.anger=72);
+  student.anger=75;
+  student.stats=[80,65,62,85];
+  await restore(stressed);
+  await check('high average anger is shown as a reversed scale and priority',"document.querySelector('.school-status-card.status-priority').dataset.schoolMetric==='studentAnger'&&document.querySelector('[data-school-metric=studentAnger] .status-meter.reversed')&&document.querySelector('[data-school-metric=studentAnger] .status-tag').textContent==='偏高'");
+  await click('#school-status-priority');await click('[data-metric-destination]');
+  await check('anger advice opens the pressure roster, ordered by severity',`document.querySelector('#tier-filter').value==='stress'&&document.querySelector('#student-table [data-student]').dataset.student===${JSON.stringify(student.id)}`);
+  await screenshot('student-status-roster-mobile',375,812);
+  await click('#student-table [data-student]');
+  await check('student skill and form are separate and attributes start collapsed',"document.querySelector('.student-hero .student-rating').textContent==='A'&&document.querySelector('.student-form-line .status-tag').textContent==='白卷风险'&&document.querySelector('[data-student-action=talk]').classList.contains('recommended')&&!document.querySelector('.student-raw-stats').open");
+  await screenshot('student-status-card-mobile',375,812);
+  await click('[data-student-action="talk"]');
+  await check('talk spends one point and updates risk without changing academic grade',`{const s=JSON.parse(localStorage.getItem('qiu-principal-sim-v1'));s.actionPoints===${stressed.actionPoints-1}&&s.students[0].anger===69&&document.querySelector('.student-form-line .status-tag').textContent==='状态承压'&&document.querySelector('.student-hero .student-rating').textContent==='A'&&document.querySelector('.student-action-feedback').textContent.includes('6.00')}`);
+  await click('#drawer [data-close-drawer]');await click('[data-student-tab="classes"]');await click('[data-class="1-1"]');
+  await click('.class-student-list [data-student-open]');await click('[data-back-student-class]');
+  await check('student dossier returns to the class with teaching controls still available',"document.querySelector('.class-student-list [data-student-open]')&&document.querySelector('.teacher-assignment-list [data-change-subject]')");
+  await restore(fresh);
   await check('event library has exactly 244 independent identifiers',"CampusEventCatalog.all().length===244");
   await screenshot('overhaul-home',1440,900);
   await click('[data-view="map"]');await click('#strategy-map [data-school="jin"]');await click('[data-school-action="exam"]');

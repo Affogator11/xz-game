@@ -6,10 +6,11 @@
   <meta name="theme-color" content="#17372e">
   <meta name="description" content="秋秋一中校长模拟器：一款离线可玩的学校经营策略游戏。">
   <title>秋秋一中：校长志</title>
-  <link rel="stylesheet" href="styles.css?v=20261106c">
-  <link rel="stylesheet" href="game-ui.css?v=20261106c">
-  <link rel="stylesheet" href="compact-ui.css?v=20261106c">
-  <link rel="stylesheet" href="readable-ui.css?v=20261106c">
+  <link rel="stylesheet" href="styles.css?v=20261107a">
+  <link rel="stylesheet" href="game-ui.css?v=20261107a">
+  <link rel="stylesheet" href="compact-ui.css?v=20261107a">
+  <link rel="stylesheet" href="readable-ui.css?v=20261107a">
+  <link rel="stylesheet" href="status-view.css?v=20261107a">
 </head>
 <body>
   <a class="skip-link" href="#main">跳到主要内容</a>
@@ -96,7 +97,7 @@
           <section class="week-mission card"><p class="eyebrow">校长，请批示</p><h3>这一周，由你决定</h3><div class="ui-ap"><span>本周行动力</span><b id="ui-ap-count">4 / 4</b></div><div id="ui-ap-pips" class="ap-pips" aria-hidden="true"></div><p id="ui-week-note"></p><button id="ui-brief-button" class="btn btn-primary btn-block">安排本周工作 →</button><div class="weekly-priorities-head"><span>秘书圈出的重点</span><small>根据当前校情推荐</small></div><div id="ui-priorities"></div></section>
         </div>
         <section class="school-journey"><div class="journey-seal" aria-hidden="true">志</div><div><p class="kicker">强校之路</p><h3 id="ui-goal-title">从全市第七出发</h3><p id="ui-goal-copy"></p><div id="ui-goal-bar" class="journey-progress" role="progressbar" aria-label="与前一名学校的积分比例" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="ui-goal-progress"></i></div></div><button class="btn btn-secondary" data-view-jump="map">积分榜 ↗</button></section>
-        <div class="section-heading"><div><p class="kicker">实时校情</p><h3>学校状态</h3></div></div>
+        <div class="section-heading status-heading"><h3>学校状态</h3><button id="school-status-priority" type="button"></button></div>
         <div class="metric-grid office-metric-grid" id="metric-grid"></div>
         <details id="ui-archive" class="campus-archive"><summary><span>校务手记</span><small>台历 · 待办 · 校内消息 · 发展曲线</small><b aria-hidden="true">＋</b></summary><span id="pending-count" hidden>0</span>
         <div class="desk-lower-grid">
@@ -139,7 +140,16 @@
         <div class="student-tabs"><button class="seg active" data-student-tab="classes">班级总览</button><button class="seg" data-student-tab="roster">全校名册</button></div>
         <div id="ui-grade-tabs" class="focus-tabs" aria-label="选择年级"></div>
         <div id="class-grid" class="class-grid"></div>
-        <section id="student-roster-panel" class="card table-card" hidden><div class="table-toolbar"><label>年级 <select id="grade-filter"><option value="all">全部</option><option value="1">高一</option><option value="2">高二</option><option value="3">高三</option></select></label><label>层级 <select id="tier-filter"><option value="all">全部</option><option>尖子生</option><option>优等生</option><option>中等生</option><option>差生</option></select></label><label class="search-box">搜索 <input id="student-search" type="search" placeholder="姓名 / 班级"></label></div><div class="table-scroll"><table><thead><tr><th>学生</th><th>班级</th><th>层级</th><th>学业</th><th>自律</th><th>心态</th><th>愤怒</th><th>潜力</th><th>最近成绩</th></tr></thead><tbody id="student-table"></tbody></table></div><div id="ui-roster-pager" class="ui-pager" hidden></div><div id="table-note" class="table-note"></div></section>
+        <section id="student-roster-panel" class="card table-card" hidden>
+          <div class="table-toolbar">
+            <label>年级 <select id="grade-filter"><option value="all">全部</option><option value="1">高一</option><option value="2">高二</option><option value="3">高三</option></select></label>
+            <label>关注 <select id="tier-filter"><option value="all">全部</option><option value="stress">状态承压</option><option value="habit">改善习惯</option><option value="growth">学业成长</option><option value="strong">实力 S / A</option></select></label>
+            <label class="search-box">搜索 <input id="student-search" type="search" placeholder="姓名 / 班级"></label>
+          </div>
+          <div id="student-table" class="student-roster"></div>
+          <div id="ui-roster-pager" class="ui-pager" hidden></div>
+          <div id="table-note" class="table-note" aria-live="polite"></div>
+        </section>
       </section>
 
       <section id="view-policies" class="view" aria-labelledby="policies-title">
@@ -173,7 +183,7 @@
     </main>
   </div>
 
-  <div id="drawer" class="drawer" hidden><div class="drawer-backdrop" data-close-drawer></div><section class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="drawer-title"><header><div><p class="eyebrow">人才档案</p><h2 id="drawer-title">详细信息</h2></div><button class="icon-btn" data-close-drawer aria-label="关闭">×</button></header><div id="drawer-body"></div></section></div>
+  <div id="drawer" class="drawer" hidden><div class="drawer-backdrop" data-close-drawer></div><section class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="drawer-title"><header><div><p class="eyebrow" id="drawer-kicker">档案与详情</p><h2 id="drawer-title">详细信息</h2></div><button class="icon-btn" data-close-drawer aria-label="关闭">×</button></header><div id="drawer-body"></div></section></div>
   <div id="action-result-modal" class="modal" hidden><div class="modal-backdrop"></div><section class="modal-panel action-feedback-panel" role="dialog" aria-modal="true" aria-labelledby="action-result-title"><header><p id="action-result-outcome" class="feedback-outcome"></p><h2 id="action-result-title"></h2></header><div id="action-result-body"></div><button id="action-result-close" class="btn btn-primary btn-block">确认结果</button></section></div>
   <div id="exchange-modal" class="modal" hidden><div class="modal-backdrop"></div><section class="modal-panel exchange-panel" role="dialog" aria-modal="true" aria-labelledby="exchange-title"><h2 id="exchange-title"></h2><p id="exchange-summary"></p><div id="exchange-candidates"></div><p id="exchange-status" role="status"></p><button id="exchange-later" class="btn btn-secondary btn-block">稍后安排</button></section></div>
   <div id="event-modal" class="modal" hidden><div class="modal-backdrop"></div><section class="modal-panel event-panel" role="dialog" aria-modal="true" aria-labelledby="event-title"><header class="event-header"><span id="event-icon" aria-hidden="true">校</span><div><p id="event-tag" class="eyebrow">每周事件</p><h2 id="event-title">事件标题</h2><time id="event-date"></time></div></header><p id="event-text" class="event-story"></p><p class="event-prompt">校长批示</p><div id="event-choices" class="event-choices"></div></section></div>
@@ -185,21 +195,22 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <div id="time-transition" class="time-transition" hidden aria-live="polite"><div class="time-transition-card"><span class="seal">秋</span><p>校历推进中</p><strong id="time-transition-date">下一周</strong><div class="time-progress"><i></i></div><small>学生成长、学校治理与其他学校行动正在结算</small></div></div>
 
-  <script src="data.js?v=20261106c"></script>
-  <script src="school-rules.js?v=20261106c"></script>
-  <script src="game-flow.js?v=20261106c"></script>
-  <script src="school-operations.js?v=20261106c"></script>
-  <script src="league-center.js?v=20261106c"></script>
-  <script src="campus-event-legacy.js?v=20261106c"></script>
-  <script src="campus-event-library.js?v=20261106c"></script>
-  <script src="campus-event-expansion.js?v=20261106c"></script>
-  <script src="campus-event-stories.js?v=20261106c"></script>
-  <script src="event-content-244.js?v=20261106c"></script>
-  <script src="campus-event-catalog.js?v=20261106c"></script>
-  <script src="campus-event-results.js?v=20261106c"></script>
-  <script src="campus-event-conditions.js?v=20261106c"></script>
-  <script src="campus-events.js?v=20261106c"></script>
-  <script src="game-ui.js?v=20261106c"></script>
-  <script src="game.js?v=20261106c"></script>
+  <script src="data.js?v=20261107a"></script>
+  <script src="school-rules.js?v=20261107a"></script>
+  <script src="game-flow.js?v=20261107a"></script>
+  <script src="school-operations.js?v=20261107a"></script>
+  <script src="league-center.js?v=20261107a"></script>
+  <script src="campus-event-legacy.js?v=20261107a"></script>
+  <script src="campus-event-library.js?v=20261107a"></script>
+  <script src="campus-event-expansion.js?v=20261107a"></script>
+  <script src="campus-event-stories.js?v=20261107a"></script>
+  <script src="event-content-244.js?v=20261107a"></script>
+  <script src="campus-event-catalog.js?v=20261107a"></script>
+  <script src="campus-event-results.js?v=20261107a"></script>
+  <script src="campus-event-conditions.js?v=20261107a"></script>
+  <script src="campus-events.js?v=20261107a"></script>
+  <script src="status-view.js?v=20261107a"></script>
+  <script src="game-ui.js?v=20261107a"></script>
+  <script src="game.js?v=20261107a"></script>
 </body>
 </html>

@@ -216,7 +216,62 @@
 
   function schoolMetricImpact(key,value){const notes={stability:'维护校园秩序，影响状态事件与考试环境。',studentAnger:'持续压低成长和考试发挥；超过70才有白卷概率。',power:'决定初始积分，并影响资助与考试环境；后续排名只看积分。',teaching:'参与所有班级的科目效率和学生考试发挥。',academics:'学校学业积累，改善每日成长与考试环境。',staffSatisfaction:'影响职工稳定、校园秩序；长期过低会结束任期。',teacherSatisfaction:'影响教学发挥、离职风险和稳定度。',studentSatisfaction:'影响心态、愤怒与校园稳定。',authority:'任免消耗，并参与稳定度和行政效率。',adminEfficiency:'岗位效果倍率=0.25+行政效率×0.0075，当前 '+governanceSnapshot().efficiencyFactor.toFixed(2)+'。',schoolMorale:'全体人员的考试士气；联考胜负影响三类满意度与所有学生心态。',prestige:'影响社会资助与外部评价。'};return notes[key]||''}
 
-  function renderOverview(){const keys=[['稳定度','stability'],['综合实力','power'],['教学质量','teaching'],['学业积累','academics'],['职工满意','staffSatisfaction'],['教师满意','teacherSatisfaction'],['学生满意','studentSatisfaction'],['校长权威','authority'],['行政效率','adminEfficiency'],['全校士气','schoolMorale'],['学校声望','prestige'],['学生愤怒','studentAnger']];$('#metric-grid').innerHTML=keys.map(([label,key])=>{const v=key==='studentAnger'?averageAnger():state[key];return`<article class="metric-card has-tooltip" tabindex="0" data-tooltip="${schoolMetricImpact(key,v)}"><small>${label}</small><strong>${v.toFixed(2)}</strong></article>`}).join('');$('#power-label').textContent=state.power.toFixed(2);$('#student-count').textContent=state.students.length;$('#staff-count').textContent=uniqueEmployeeIds().length+1;$('#pending-count').textContent=agenda().length;$('#desk-stability-note').textContent=`全市第 ${SchoolRules.rank(state)} · ${state.league.points.qiu.toFixed(2)} 积分`;$('#agenda-list').innerHTML=agenda().map(a=>`<div class="agenda-item"><div class="agenda-date"><b>${a.day}</b><small>${a.month}</small></div><div><p>${a.title}</p><span>${a.note}</span></div><button data-view-jump="${a.view}">›</button></div>`).join('');$$('#agenda-list [data-view-jump]').forEach(b=>b.onclick=()=>showView(b.dataset.viewJump));$('#news-feed').innerHTML=state.news.slice(0,6).map(n=>`<div class="news-item"><time>${n.date}</time><span>${n.text}</span></div>`).join('');renderCalendar();requestAnimationFrame(drawTrend)}
+  function showSchoolMetric(metric){
+    const {label, value, status, level, anger, view, action, advice, key} = metric;
+    const chosen = D.actions.find(item=>item.id===action);
+    const destinations = {people:'检查管理岗位', map:'前往学校联赛', students:'查看需减压的学生'};
+    const target = anger ? '建议将全校平均愤怒降到 30 以下。' : '建议逐步提升到 70 或以上。';
+    const bands = anger ? '0–29.99 平稳 · 30–44.99 升高 · 45–100 偏高'
+      : '0–49.99 偏低 · 50–69.99 可提升 · 70–100 良好';
+    $('.drawer-panel').classList.remove('class-mode');
+    $('#drawer-kicker').textContent = '学校状态';
+    $('#drawer-title').textContent = label;
+    $('#drawer-body').innerHTML = `<div class="status-profile">
+      <div class="status-detail-title"><strong>${value.toFixed(2)} <small>/ 100</small></strong><span class="status-tag ${level}">${status}</span></div>
+      ${anger ? StatusView.meter(value,label,30,45,true) : StatusView.meter(value,label)}
+      <p class="status-scale">${bands}</p>
+      <p>${schoolMetricImpact(key,value)}</p>
+    </div><section class="cultivation-tip">
+      <h3>${level==='good'?'保持当前水平':'怎么改善'}</h3>
+      <p>${level==='good'?'当前在建议区间。':target} ${advice}</p>
+      <button class="btn btn-primary" data-metric-destination>${chosen ? chosen.title : destinations[view]}</button>
+      ${chosen ? `<small>${fmtMoney(chosen.money)} · ${chosen.ap} 行动点</small>` : ''}
+    </section>`;
+    $('#drawer').hidden = false;
+    $('[data-metric-destination]').onclick = () => {
+      closeDrawer();
+      if (key === 'studentAnger') {
+        studentTab = 'roster';
+        $('#grade-filter').value = 'all';
+        $('#tier-filter').value = 'stress';
+        $('#student-search').value = '';
+      }
+      if (key === 'adminEfficiency') peopleTab = 'management';
+      showView(view);
+      if (action) window.CampusUI.focusAction(action);
+    };
+  }
+
+  function renderSchoolStatus(){
+    const {metrics, priority} = StatusView.school(state,averageAnger());
+    $('#metric-grid').innerHTML = metrics.map(metric=>{
+      const {key, label, value, status, level, anger} = metric;
+      return `<button type="button" class="metric-card school-status-card ${metric===priority?'status-priority':''}" data-school-metric="${key}" title="${schoolMetricImpact(key,value)}" aria-label="${label} ${value.toFixed(2)}，${status}，查看建议">
+        <span class="status-card-label"><small>${label}</small><span class="status-tag ${level}">${status}</span></span>
+        <strong>${value.toFixed(2)}</strong>
+        ${anger ? StatusView.meter(value,label,30,45,true) : StatusView.meter(value,label)}
+      </button>`;
+    }).join('');
+    for (const metric of metrics) {
+      $(`[data-school-metric="${metric.key}"]`).onclick = () => showSchoolMetric(metric);
+    }
+    const focus = $('#school-status-priority');
+    focus.textContent = priority ? `优先改善 · ${priority.label} ›` : '各项达到建议区间';
+    focus.disabled = !priority;
+    focus.onclick = () => showSchoolMetric(priority);
+  }
+
+  function renderOverview(){renderSchoolStatus();$('#power-label').textContent=state.power.toFixed(2);$('#student-count').textContent=state.students.length;$('#staff-count').textContent=uniqueEmployeeIds().length+1;$('#pending-count').textContent=agenda().length;$('#desk-stability-note').textContent=`全市第 ${SchoolRules.rank(state)} · ${state.league.points.qiu.toFixed(2)} 积分`;$('#agenda-list').innerHTML=agenda().map(a=>`<div class="agenda-item"><div class="agenda-date"><b>${a.day}</b><small>${a.month}</small></div><div><p>${a.title}</p><span>${a.note}</span></div><button data-view-jump="${a.view}">›</button></div>`).join('');$$('#agenda-list [data-view-jump]').forEach(b=>b.onclick=()=>showView(b.dataset.viewJump));$('#news-feed').innerHTML=state.news.slice(0,6).map(n=>`<div class="news-item"><time>${n.date}</time><span>${n.text}</span></div>`).join('');renderCalendar();requestAnimationFrame(drawTrend)}
 
   function agenda(){const d=getDate(),scheduled=state.scheduledEvents.filter(e=>e.status==='scheduled'&&new Date(`${e.date}T23:59:59`)>=d).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,2).map(e=>{const x=new Date(`${e.date}T12:00:00`);return{day:x.getDate(),month:`${x.getMonth()+1}月`,title:`与${school(e.targetId).short}联考`,note:`${e.classKeys.length} 个班 · ${staffById(e.teacherId).name}负责`,view:'map'}});const defaults=[{day:d.getDate()+1>28?1:d.getDate()+1,month:'近期',title:'年级主任例会',note:'检查各年级教学秩序',view:'people'},{day:1,month:'下月',title:'月度财务结算',note:'拨款、工资与运营支出',view:'finance'},{day:d.getDate()+3>28?3:d.getDate()+3,month:'近期',title:'备课组教研',note:'分析阶段性学情',view:'actions'}];return[...scheduled,...defaults].slice(0,4)}
 
@@ -279,20 +334,124 @@
     $('#drawer-body').innerHTML=`<div class="bio-block"><b>${def.focus}</b><br>职位等级：${def.tier}。按岗位适配度持续影响学校，撤职消耗 ${def.authorityCost} 点校长权威。校内提拔 ¥12,000；待任人才任命 ¥8,000。</div>${people.length?`<div class="candidate-role-list">${people.map(t=>`<button class="candidate-role-option" data-appoint-role="${t.id}"><span class="person-avatar">${t.name[0]}</span><span><b>${t.name}</b><small>${state.staffIds.includes(t.id)?'校内教师':'待任人才'} · ${t.subject} · ${t.trait}<br>职责：${def.focus}</small></span><strong>适配 ${roleFit(role,t)}</strong></button>`).join('')}</div>`:'<div class="empty-state"><strong>没有可任命人员</strong><p>请先在人才市场完成签约。</p></div>'}`;
     $('#drawer').hidden=false;$$('[data-appoint-role]').forEach(b=>b.addEventListener('click',()=>{const t=staffById(b.dataset.appointRole),internal=state.staffIds.includes(t.id),cost=internal?12000:8000;if(state.roles[role]||SchoolRules.locked(state,role)||state.exchangeTrips.some(x=>x.staffId===t.id&&x.status==='away')||Object.values(state.roles).includes(t.id))return toast('岗位或人员已发生变化。');if(state.money<cost)return toast('资金不足，无法完成任命。');state.money-=cost;state.roles[role]=t.id;state.roleOrigins[role]=internal?'teacher':'candidate';state.candidateIds=state.candidateIds.filter(id=>id!==t.id);state.staffSatisfaction+=.4;ledger(`任命${role} ${t.name}`,-cost);addNews(`${t.name}就任${role}，岗位适配度为 ${roleFit(role,t)}。`);addCalendarEvent('action',`任命${role}：${t.name}`);recalculateAdministration();state.stability=stabilitySnapshot().value;clampStats();closeDrawer();save();renderAll();toast(`${t.name}已就任${role}，治理效果开始生效。`)}))
   }
-  function closeDrawer(){$('#drawer').hidden=true;$('.drawer-panel').classList.remove('class-mode')}
+  function closeDrawer(){$('#drawer').hidden=true;$('#drawer-kicker').textContent='档案与详情';$('.drawer-panel').classList.remove('class-mode')}
   function drawRadar(c,vals,labels){if(!c)return;const ratio=devicePixelRatio||1,w=380,h=310;c.width=w*ratio;c.height=h*ratio;c.style.height=`${h}px`;const x=c.getContext('2d');x.scale(ratio,ratio);const cx=w/2,cy=h/2+3,r=105,n=vals.length;x.clearRect(0,0,w,h);for(let ring=1;ring<=4;ring++){x.beginPath();for(let i=0;i<n;i++){const a=-Math.PI/2+i*Math.PI*2/n,rr=r*ring/4,px=cx+Math.cos(a)*rr,py=cy+Math.sin(a)*rr;i?x.lineTo(px,py):x.moveTo(px,py)}x.closePath();x.strokeStyle='rgba(23,55,46,.15)';x.stroke()}for(let i=0;i<n;i++){const a=-Math.PI/2+i*Math.PI*2/n;x.beginPath();x.moveTo(cx,cy);x.lineTo(cx+Math.cos(a)*r,cy+Math.sin(a)*r);x.stroke();x.fillStyle='#596960';x.font='12px Microsoft YaHei';x.textAlign=Math.cos(a)>.2?'left':Math.cos(a)<-.2?'right':'center';x.fillText(`${labels[i]} ${vals[i]}`,cx+Math.cos(a)*(r+17),cy+Math.sin(a)*(r+17)+4)}x.beginPath();vals.forEach((v,i)=>{const a=-Math.PI/2+i*Math.PI*2/n,rr=r*v/100,px=cx+Math.cos(a)*rr,py=cy+Math.sin(a)*rr;i?x.lineTo(px,py):x.moveTo(px,py)});x.closePath();x.fillStyle='rgba(196,149,63,.28)';x.strokeStyle='#a77729';x.lineWidth=2;x.fill();x.stroke()}
 
-  function renderStudents(){
-    if(!state)return;$('#exam-btn').disabled=isGaokaoSeason();$('#exam-btn').title=isGaokaoSeason()?'高考季期间仅进行高三每日模拟考':'';const grades=[1,2,3].map(g=>{const list=state.students.filter(s=>s.grade===g);return {g,avg:round2(list.reduce((a,s)=>a+s.score,0)/list.length).toFixed(2),top:list.filter(s=>s.tier==='尖子生').length,morale:round2(list.reduce((a,s)=>a+s.stats[2],0)/list.length).toFixed(2),anger:averageAnger(list)}});
-    $('#grade-summary').innerHTML=grades.map(x=>`<article class="metric-card has-tooltip" tabindex="0" data-tooltip="年级平均分由最近成绩计算；心态提高发挥，愤怒压低成绩并带来联考白卷风险。"><small>高${['','一','二','三'][x.g]}年级</small><strong>${x.avg} 分</strong><span class="delta">心态 ${x.morale} · 愤怒 ${x.anger.toFixed(2)}</span><i class="watermark">${x.g}</i></article>`).join('')+`<article class="metric-card"><small>最近一次考试</small><strong>${state.examCount?'第'+state.examCount+'次':'未举行'}</strong><span class="delta">平均愤怒 ${averageAnger().toFixed(2)}</span><i class="watermark">考</i></article>`;
-    $$('.student-tabs .seg').forEach(b=>b.classList.toggle('active',b.dataset.studentTab===studentTab));$('#class-grid').hidden=studentTab!=='classes';$('#student-roster-panel').hidden=studentTab!=='roster';
-    if(studentTab==='classes'){$('#class-grid').innerHTML=[1,2,3].flatMap(g=>[1,2,3,4,5].map(c=>{const key=classKey(g,c),list=state.students.filter(s=>s.grade===g&&s.classNo===c),avg=list.reduce((a,s)=>a+s.score,0)/list.length,mind=list.reduce((a,s)=>a+s.stats[2],0)/list.length,anger=averageAnger(list),teacher=staffById(state.classTeachers[key]?.homeroomId),top=list.filter(s=>s.tier==='尖子生').length;return`<article class="class-card ${c>=4?'elite':''}" tabindex="0" data-class="${key}"><header><span>${classType(c)}</span><b>${list.length} 人</b></header><h3>${classLabel(key)}</h3><p>班主任 ${teacher?.name||'待安排'} · ${teacher?.subject||'—'}</p><div class="class-stats"><div><small>平均分</small><strong>${avg.toFixed(2)}</strong></div><div><small>心态</small><strong>${mind.toFixed(2)}</strong></div><div class="anger-stat"><small>愤怒</small><strong>${anger.toFixed(2)}</strong></div><div><small>尖子生</small><strong>${top}</strong></div></div><button class="text-btn">查看学生与任课教师 →</button></article>`})).join('');$$('[data-class]').forEach(card=>{const open=()=>openClass(card.dataset.class);card.addEventListener('click',open);card.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open()}})})}
-    const grade=$('#grade-filter').value,tier=$('#tier-filter').value,q=$('#student-search').value.trim();let list=state.students.filter(s=>(grade==='all'||s.grade===Number(grade))&&(tier==='all'||s.tier===tier)&&(!q||s.name.includes(q)||s.className.includes(q)));
-    $('#student-table').innerHTML=list.map(s=>`<tr data-student="${s.id}" tabindex="0"><td><strong>${s.name}</strong><br><small>${s.trait}</small></td><td>${s.className} · ${s.track}</td><td><span class="tier">${s.tier}</span></td><td>${s.stats[0]}</td><td>${s.stats[1]}</td><td>${s.stats[2]}</td><td><span class="anger-value ${s.anger>=70?'danger':s.anger>=45?'warning':''}">${s.anger.toFixed(2)}</span></td><td>${s.stats[3]}</td><td><strong>${s.score}</strong> / 750</td></tr>`).join('');
-    $('#table-note').textContent=`信息库共 1,200 名预生成学生；本局共有 ${state.students.length} 名，当前显示 ${list.length} 名（性能上限 120 行）。`;
-    $$('#student-table tr').forEach(tr=>tr.addEventListener('click',()=>openStudent(state.students.find(s=>s.id===tr.dataset.student))));window.CampusUI.section('students',state);
+  function studentRatingBadge(profile){
+    const {letter,label,style} = profile.rating;
+    return `<span class="student-rating ${style}" aria-label="学业实力 ${letter}级，${label}">${letter}</span>`;
   }
-  function openClass(key){const [g,c]=key.split('-').map(Number),students=state.students.filter(s=>s.grade===g&&s.classNo===c),a=state.classTeachers[key],avg=i=>students.reduce((n,s)=>n+s.stats[i],0)/students.length;$('.drawer-panel').classList.add('class-mode');$('#drawer-title').textContent=classLabel(key);$('#drawer-body').innerHTML=`<div class="class-identity"><span>${classType(c)} · ${students.length}人</span><button class="btn btn-secondary" data-change-homeroom>班主任 ${staffById(a.homeroomId)?.name||'待任'}</button></div><div class="class-drawer-summary">${[['均分',students.reduce((n,s)=>n+s.score,0)/students.length],['学业',avg(0)],['自律',avg(1)],['心态',avg(2)],['潜力',avg(3)],['愤怒',averageAnger(students)]].map(([label,v])=>`<div><small>${label}</small><strong>${v.toFixed(2)}</strong></div>`).join('')}</div><div class="drawer-split"><section><h3>各科效率</h3><div class="teacher-assignment-list">${[...curriculumSubjects(c),'体育','信息'].map(subject=>{const id=['体育','信息'].includes(subject)?state.gradeSpecialists[g]?.[subject]:a.subjects[subject],t=staffById(id);return`<div><span><b>${subject} · ${subjectEfficiency(key,subject).toFixed(2)}%</b><small>${t?`<button class="text-btn" data-person="${id}">${t.name}</button>`:'待任'}${id&&Object.values(state.roles).includes(id)?' · 兼任50%':''}</small></span><button class="btn btn-secondary" data-change-subject="${subject}">更换</button></div>`}).join('')}</div><details class="ui-calculation"><summary>效率公式</summary><p>（教师教学×0.65＋沟通×0.10＋班级自律×0.10＋心态×0.08＋学校教学×0.07−愤怒×0.08）×兼任倍率。行政兼任倍率为0.50。体育、信息计入班级成长保障。</p></details></section><section><h3>学生</h3><div class="class-student-list">${students.map(s=>`<button data-student-open="${s.id}"><span>${s.name}</span><small>${s.tier} · 愤怒${s.anger.toFixed(2)}</small><b>${s.score.toFixed(2)}</b></button>`).join('')}</div></section></div>`;$('#drawer').hidden=false;$$('[data-person]',$('#drawer')).forEach(b=>b.onclick=()=>openPerson(staffById(b.dataset.person)));$('[data-change-homeroom]').onclick=()=>openClassTeacherChooser(key,'班主任',true);$$('[data-change-subject]').forEach(b=>b.onclick=()=>['体育','信息'].includes(b.dataset.changeSubject)?openSpecialistChooser(g,b.dataset.changeSubject):openClassTeacherChooser(key,b.dataset.changeSubject,false));$$('[data-student-open]').forEach(b=>b.onclick=()=>openStudent(state.students.find(s=>s.id===b.dataset.studentOpen)))}
+
+  function studentLine(student, profile, inClass=false){
+    return `<button type="button" class="student-line" ${inClass?'data-student-open':'data-student'}="${student.id}">
+      ${studentRatingBadge(profile)}
+      <span class="student-line-name"><b>${student.name}</b><small>${inClass ? profile.focus.title : student.className}</small></span>
+      <span class="status-tag ${profile.form.level}">${profile.form.label}</span>
+    </button>`;
+  }
+
+  function renderStudents(){
+    if (!state) return;
+    $('#exam-btn').disabled = isGaokaoSeason();
+    $('#exam-btn').title = isGaokaoSeason()?'高考季期间仅进行高三每日模拟考':'';
+    const grades = [1,2,3].map(grade=>{
+      const students = state.students.filter(s=>s.grade===grade);
+      const average = students.reduce((sum,s)=>sum+s.score,0)/students.length;
+      const stressed = students.filter(s=>StatusView.student(s).form.order>0).length;
+      return `<article class="metric-card" tabindex="0"><small>高${['','一','二','三'][grade]}年级</small><strong>${average.toFixed(2)} 分</strong><span class="delta">${stressed ? `承压 ${stressed} 人` : '状态平稳'}</span></article>`;
+    });
+    $('#grade-summary').innerHTML = grades.join('')+`<article class="metric-card"><small>校内月考</small><strong>${state.examCount} 次</strong><span class="delta">组织月考更新成绩</span></article>`;
+    const classes = studentTab==='classes';
+    $$('.student-tabs .seg').forEach(button=>{
+      const active = button.dataset.studentTab===studentTab;
+      button.classList.toggle('active',active);
+      button.setAttribute('aria-pressed',String(active));
+    });
+    $('#class-grid').hidden = !classes;
+    $('#student-roster-panel').hidden = classes;
+    if (classes) {
+      $('#class-grid').innerHTML = [1,2,3].flatMap(grade=>[1,2,3,4,5].map(classNo=>{
+        const key = classKey(grade,classNo);
+        const students = state.students.filter(s=>s.grade===grade&&s.classNo===classNo);
+        const average = students.reduce((sum,s)=>sum+s.score,0)/students.length;
+        const skill = StatusView.rating(students.reduce((sum,s)=>sum+s.stats[0],0)/students.length);
+        const stressed = students.filter(s=>StatusView.student(s).form.order>0).length;
+        const teacher = staffById(state.classTeachers[key]?.homeroomId);
+        return `<article class="class-card ${classNo>=4?'elite':''}" role="button" tabindex="0" data-class="${key}"><header><span>${classType(classNo)}</span><b>${students.length} 人</b></header><h3>${classLabel(key)}</h3><p>班主任 ${teacher?.name||'待安排'}</p>
+          <div class="class-stats"><div><small>学业实力</small><strong>${skill.letter} 级</strong></div><div><small>最近均分</small><strong>${average.toFixed(2)}</strong></div><div class="${stressed?'class-watch':''}"><small>承压学生</small><strong>${stressed} 人</strong></div></div>
+        </article>`;
+      })).join('');
+      for (const card of $$('#class-grid [data-class]')) {
+        card.onclick = () => openClass(card.dataset.class);
+        card.onkeydown = event => {
+          if (event.key==='Enter'||event.key===' ') {
+            event.preventDefault();
+            card.click();
+          }
+        };
+      }
+    } else {
+      const grade = $('#grade-filter').value;
+      const focus = $('#tier-filter').value;
+      const query = $('#student-search').value.trim();
+      const roster = state.students
+        .filter(s=>(grade==='all'||s.grade===Number(grade))&&(!query||s.name.includes(query)||s.className.includes(query)))
+        .map(s=>({s, profile:StatusView.student(s)}))
+        .filter(({profile})=>focus==='all'||(
+          focus==='stress' ? profile.form.order>0 :
+          focus==='habit' ? profile.focus.action==='parent' :
+          focus==='growth' ? profile.focus.action==='scholarship' :
+          ['S','A'].includes(profile.rating.letter)
+        ))
+        .sort((a,b)=>focus==='stress' ? b.profile.form.order-a.profile.form.order||b.s.anger-a.s.anger : b.s.stats[0]-a.s.stats[0]);
+      $('#student-table').innerHTML = roster.map(({s,profile})=>studentLine(s,profile)).join('')
+        || '<p class="student-roster-empty">没有匹配的学生。可以换个年级或关注项。</p>';
+      for (const button of $$('#student-table [data-student]')) {
+        button.onclick = () => openStudent(state.students.find(s=>s.id===button.dataset.student));
+      }
+    }
+    window.CampusUI.section('students',state);
+  }
+  function openClass(key){
+    const [grade,classNo] = key.split('-').map(Number);
+    const students = state.students.filter(s=>s.grade===grade&&s.classNo===classNo);
+    const assignments = state.classTeachers[key];
+    const average = values=>values.reduce((sum,value)=>sum+value,0)/Math.max(1,values.length);
+    const attributes = ['学业','自律','心态','潜力'].map((label,i)=>[label,average(students.map(s=>s.stats[i]))]);
+    const rawStats = [['均分',average(students.map(s=>s.score))],...attributes,['愤怒',averageAnger(students)]];
+    const profiles = students.map(s=>({s, profile:StatusView.student(s)}));
+    profiles.sort((a,b)=>b.profile.form.order-a.profile.form.order||b.s.stats[0]-a.s.stats[0]);
+    const stressed = profiles.filter(({profile})=>profile.form.order>0).length;
+    const subjects = [...curriculumSubjects(classNo),'体育','信息'];
+    const isSpecialist = subject=>subject==='体育'||subject==='信息';
+    $('.drawer-panel').classList.add('class-mode');
+    $('#drawer-kicker').textContent = '班级档案';
+    $('#drawer-title').textContent = classLabel(key);
+    $('#drawer-body').innerHTML = `<div class="class-identity"><span>${classType(classNo)} · ${students.length} 人</span><button class="btn btn-secondary" data-change-homeroom>班主任 ${staffById(assignments.homeroomId)?.name||'待任'}</button></div>
+      <details class="ui-calculation class-raw-stats"><summary>查看班级各项均值</summary><div class="class-drawer-summary">${rawStats.map(([label,value])=>`<div><small>${label}</small><strong>${value.toFixed(2)}</strong></div>`).join('')}</div></details>
+      <div class="drawer-split">
+        <section><div class="class-roster-heading"><h3>学生培养</h3><span class="status-tag ${stressed?'watch':'good'}">${stressed?`承压 ${stressed} 人 · 优先列出`:'全班状态平稳'}</span></div>
+          <div class="class-student-list">${profiles.map(({s,profile})=>studentLine(s,profile,true)).join('')}</div>
+        </section>
+        <section><h3>各科效率</h3><div class="teacher-assignment-list">${subjects.map(subject=>{
+          const id = isSpecialist(subject)?state.gradeSpecialists[grade]?.[subject]:assignments.subjects[subject];
+          const teacher = staffById(id);
+          const sharedRole = id&&Object.values(state.roles).includes(id);
+          return `<div><span><b>${subject} · ${subjectEfficiency(key,subject).toFixed(2)}%</b><small>${teacher?`<button class="text-btn" data-person="${id}">${teacher.name}</button>`:'待任'}${sharedRole?' · 兼任50%':''}</small></span><button class="btn btn-secondary" data-change-subject="${subject}">更换</button></div>`;
+        }).join('')}</div>
+        <details class="ui-calculation"><summary>效率公式</summary><p>（教师教学×0.65＋沟通×0.10＋班级自律×0.10＋心态×0.08＋学校教学×0.07−愤怒×0.08）×兼任倍率。行政兼任倍率为0.50。体育、信息计入班级成长保障。</p></details></section>
+      </div>`;
+    $('#drawer').hidden = false;
+    for (const button of $$('#drawer [data-person]')) button.onclick = () => openPerson(staffById(button.dataset.person));
+    $('[data-change-homeroom]').onclick = () => openClassTeacherChooser(key,'班主任',true);
+    for (const button of $$('[data-change-subject]')) {
+      const subject = button.dataset.changeSubject;
+      button.onclick = () => isSpecialist(subject)?openSpecialistChooser(grade,subject):openClassTeacherChooser(key,subject,false);
+    }
+    for (const button of $$('[data-student-open]')) {
+      button.onclick = () => openStudent(state.students.find(s=>s.id===button.dataset.studentOpen),true);
+    }
+  }
 
   function openClassTeacherChooser(key,subject,homeroom){const candidates=[...new Set([...state.staffIds,...state.candidateIds])].map(staffById).filter(t=>t&&(homeroom||t.subject===subject)&&!SchoolRules.canAssign(state,t,key,homeroom)).sort((a,b)=>b.overall-a.overall);$('#drawer-title').textContent=`${classLabel(key)} · ${subject}`;$('#drawer-body').innerHTML=`<button class="text-btn" data-back-class>← 返回班级</button><p>班主任仅在本班任课；其他教师最多三个班。</p><button class="btn btn-danger" data-clear-class-teacher>撤销当前安排 · 权威−${homeroom?'1.50':'1.00'}</button><div class="teacher-choice-list">${candidates.map(t=>`<button data-assign-class-teacher="${t.id}"><b>${t.name}</b><span>${t.subject} · 教学${t.stats[0].toFixed(2)} · 管理${t.stats[1].toFixed(2)}</span><small>${new Set(teacherAssignments(t.id).map(x=>x.key)).size}班</small></button>`).join('')||'<p>无符合负担限制的教师，请先招聘。</p>'}</div>`;$('[data-back-class]').onclick=()=>openClass(key);$('[data-clear-class-teacher]').onclick=()=>clearClassTeacher(key,subject,homeroom);$$('[data-assign-class-teacher]').forEach(b=>b.onclick=()=>assignClassTeacher(key,subject,b.dataset.assignClassTeacher,homeroom))}
 
@@ -300,9 +459,81 @@
 
   function assignClassTeacher(key,subject,id,homeroom){const t=staffById(id),reason=SchoolRules.canAssign(state,t,key,homeroom);if(reason)return toast(reason);if(!homeroom&&t.subject!==subject)return toast('任教学科不匹配。');if(state.candidateIds.includes(id)){state.candidateIds=state.candidateIds.filter(x=>x!==id);state.staffIds.push(id)}const a=state.classTeachers[key];if(homeroom){a.homeroomId=id;a.subjects[t.subject]=id}else a.subjects[subject]=id;reconcileUnassigned(state);save();renderAll();openClass(key)}
 
-  function openStudent(s){$('#drawer-title').textContent=s.name;$('#drawer-body').innerHTML=`<p>${s.className} · ${s.tier} · 成绩 ${s.score.toFixed(2)} / 750</p><div class="student-ability-grid">${['学业','自律','心态','潜力'].map((label,i)=>`<article><div><span>${label}</span><b>${s.stats[i].toFixed(2)}</b></div><i><u style="width:${s.stats[i]}%"></u></i></article>`).join('')}</div><div class="student-anger-card"><b>愤怒 ${s.anger.toFixed(2)}</b><span>每日 ${signed(s.dailyChange?.anger||0)}</span><p>压低成长与发挥；超过70后白卷概率=(愤怒−70)/120，最高25%。</p></div><p>600分以上采用渐进衰减，同样的学业提升带来的分数收益逐渐减少。</p><div class="student-action-grid"><button data-student-action="talk"><b>谈心</b><small>1行动点 · 心态+4 · 愤怒−6</small></button><button data-student-action="scholarship"><b>成长奖学金</b><small>¥5,000 · 学业提升，受衰减 · 愤怒−2</small></button><button data-student-action="parent"><b>家校沟通</b><small>1行动点 · 自律+2.50 · 愤怒−1</small></button><button data-student-action="discipline"><b>纪律约谈</b><small>自律+1.50 · 心态−1.50 · 愤怒+5</small></button></div>`;$('#drawer').hidden=false;$$('[data-student-action]').forEach(b=>b.onclick=()=>runStudentAction(s,b.dataset.studentAction))}
+  function openStudent(s, backToClass=false, feedback=''){
+    if (!s) return;
+    const profile = StatusView.student(s);
+    const {rating, form, focus} = profile;
+    const actions = [
+      ['talk','谈心','1 行动点','心态 +4，愤怒 −6',state.actionPoints<1?'行动点不足':''],
+      ['scholarship','成长奖学金',fmtMoney(5000),`学业 +${SchoolRules.growth(s.stats[0],1.5).toFixed(2)}，自律 +1，愤怒 −2`,state.money<5000?'资金不足':''],
+      ['parent','家校沟通','1 行动点','自律 +2.50，愤怒 −1',state.actionPoints<1?'行动点不足':''],
+      ['discipline','纪律约谈','无需费用','自律 +1.50，权威 +0.30，心态 −1.50，愤怒 +5','']
+    ].sort((a,b)=>Number(b[0]===focus.action)-Number(a[0]===focus.action));
+    $('.drawer-panel').classList.remove('class-mode');
+    $('#drawer-kicker').textContent = '学生档案';
+    $('#drawer-title').textContent = s.name;
+    $('#drawer-body').innerHTML = `${backToClass?'<button class="text-btn" data-back-student-class>‹ 返回班级</button>':''}
+      <div class="student-hero">
+        ${studentRatingBadge(profile)}
+        <div><small>${s.className} · ${s.track}</small><h3>学业实力 ${rating.letter} 级 · ${rating.label}</h3>
+          ${StatusView.meter(s.stats[0],'学业实力',60,75)}
+        </div>
+      </div>
+      <div class="student-form-line"><span class="status-tag ${form.level}">${form.label}</span><span>最近成绩 <b>${s.score.toFixed(2)}</b> / 750</span></div>
+      <section class="cultivation-tip"><small>培养建议</small><h3>${focus.title}</h3><p>${focus.reason}</p></section>
+      ${feedback ? `<p class="student-action-feedback" role="status">${feedback}</p>` : ''}
+      <div class="student-action-grid student-cultivation">${actions.map(([id,title,cost,effects,blocked])=>`<button type="button" data-student-action="${id}" class="${id===focus.action?'recommended':''}" ${blocked?'disabled':''}><b>${title}${id===focus.action?' · 推荐':''}</b><small>${cost}${blocked?' · '+blocked:''}</small><span>${effects}</span></button>`).join('')}</div>
+      <details class="ui-calculation student-raw-stats"><summary>查看完整属性</summary>
+        <div class="student-ability-grid">${['学业','自律','心态','潜力','愤怒'].map((label,i)=>{
+          const value = i===4?s.anger:s.stats[i];
+          return `<article><div><span>${label}</span><b>${value.toFixed(2)}</b></div>${i===4 ? StatusView.meter(value,label,45,70,true) : StatusView.meter(value,label)}</article>`;
+        }).join('')}</div>
+        <p>学业评级按学业值划分，S ≥ 85，A ≥ 75，B ≥ 60，C ≥ 45，其余为 D。自律影响学习习惯，潜力影响成长空间。心态和愤怒影响发挥，个人愤怒超过 70 时才可能在联考交白卷。</p>
+      </details>`;
+    $('#drawer').hidden = false;
+    $('[data-back-student-class]')?.addEventListener('click',()=>openClass(classKey(s.grade,s.classNo)));
+    for (const button of $$('[data-student-action]')) {
+      button.onclick = () => runStudentAction(s,button.dataset.studentAction,backToClass);
+    }
+  }
 
-  function runStudentAction(s,type){if(['talk','parent'].includes(type)&&state.actionPoints<1)return toast('行动点不足。');if(type==='scholarship'&&state.money<5000)return toast('资金不足。');if(type==='talk'){state.actionPoints--;s.stats[2]+=4;s.anger-=6}if(type==='parent'){state.actionPoints--;s.stats[1]+=2.5;s.anger--}if(type==='scholarship'){state.money-=5000;s.stats[0]+=SchoolRules.growth(s.stats[0],1.5);s.stats[1]++;s.anger-=2;ledger('成长奖学金',-5000)}if(type==='discipline'){s.stats[1]+=1.5;s.stats[2]-=1.5;s.anger+=5;state.authority+=.3}clampStats();save();renderAll();openStudent(s)}
+  function runStudentAction(s,type,backToClass=false){
+    if (['talk','parent'].includes(type)&&state.actionPoints<1) return toast('行动点不足。');
+    if (type==='scholarship'&&state.money<5000) return toast('资金不足。');
+    const before = [...s.stats,s.anger,state.authority];
+    if (type==='talk') {
+      state.actionPoints--;
+      s.stats[2]+=4;
+      s.anger-=6;
+    } else if (type==='parent') {
+      state.actionPoints--;
+      s.stats[1]+=2.5;
+      s.anger--;
+    } else if (type==='scholarship') {
+      state.money-=5000;
+      s.stats[0]+=SchoolRules.growth(s.stats[0],1.5);
+      s.stats[1]++;
+      s.anger-=2;
+      ledger('成长奖学金',-5000);
+    } else if (type==='discipline') {
+      s.stats[1]+=1.5;
+      s.stats[2]-=1.5;
+      s.anger+=5;
+      state.authority+=.3;
+    }
+    clampStats();
+    save();
+    renderAll();
+    const labels = ['学业','自律','心态','潜力','愤怒','权威'];
+    const changes = [...s.stats,s.anger,state.authority].map((value,i)=>{
+      const delta = round2(value-before[i]);
+      return delta ? `${labels[i]} ${signed(delta)}` : '';
+    }).filter(Boolean);
+    const feedback = changes.length ? `已完成 · ${changes.join(' · ')}` : '已完成 · 相关属性已达到当前边界';
+    openStudent(s,backToClass,feedback);
+    const button = $(`[data-student-action="${type}"]`);
+    (button.disabled?$('#drawer [data-close-drawer]'):button)?.focus({preventScroll:true});
+  }
 
   function runExam(){if(isGaokaoSeason())return;if(state.money<32000||state.actionPoints<1)return toast('需要¥32,000及1行动点。');state.money-=32000;state.actionPoints--;state.examCount++;const boost=state.principalSkills.examBoost;state.students.forEach(s=>{s.score=SchoolRules.scoreStudent(s,state,Math.random,boost);s.stats[0]+=SchoolRules.growth(s.stats[0],Math.random()*.6);s.anger+=.35});state.principalSkills.examBoost=false;state.academics+=.6;ledger('校内月考',-32000);addNews(`校内月考结束，均分${(state.students.reduce((a,s)=>a+s.score,0)/state.students.length).toFixed(2)}，不计联赛积分。`);clampStats();save();renderAll();toast('校内月考完成，成绩已更新。')}
 

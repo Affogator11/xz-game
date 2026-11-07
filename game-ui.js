@@ -120,9 +120,6 @@
     $('#ui-policy-note').textContent = `当前平均愤怒 ${anger.toFixed(2)}。每次只调整一项制度，留出时间观察学生的反应。`;
     $('#ui-finance-note').textContent = `可用资金 ${money(state.money)}。先选校园区域，再决定升级；经费与账本可随时切换。`;
     $('#ui-action-note').textContent = `本周还可使用 ${state.actionPoints} 点行动力。选一个经营方向，把有限的时间花在最需要的地方。`;
-    // Core school health first. The other six remain behind an explicit reveal.
-    const metrics = $$('#metric-grid .metric-card');
-    metrics.forEach(card=>card.classList.remove('ui-extra-metric')); 
     ['people','students','policies','finance','actions'].forEach(name => section(name,state));
     $$('#main-nav .nav-item').forEach(b => b.setAttribute('aria-current', b.classList.contains('active') ? 'page' : 'false'));
   }
@@ -161,11 +158,11 @@
     });
     const search = ['#grade-filter','#tier-filter','#student-search'].map(s => $(s).value).join('|');
     if (search !== lastRosterSearch) { ui.rosterPage=0; lastRosterSearch=search; }
-    const rows = $$('#student-table tr');
+    $('#grade-summary').hidden = !classes;
+    const rows = $$('#student-table [data-student]');
     ui.rosterPage = pager($('#ui-roster-pager'),rows,ui.rosterPage,value => {ui.rosterPage=value;students();});
     $('#ui-roster-pager').hidden ||= classes;
-    $('#table-note').textContent = `本校 ${current.students.length} 名学生 · 当前筛选 ${rows.length} 人 · 点击姓名查看成长档案`;
-    rows.forEach(row => { row.onkeydown = e => {if(e.key==='Enter'||e.key===' '){e.preventDefault();row.click();}}; });
+    $('#table-note').textContent = `筛选到 ${rows.length} / ${current.students.length} 名学生`;
   }
   function policies() {
     const groups = $$('#policy-groups .policy-group');
@@ -210,5 +207,16 @@
     if(!current||!actions)return;
     if(name==='people')people();if(name==='students')students();if(name==='policies')policies();if(name==='finance')finance();if(name==='actions')actionPage();
   }
-  window.CampusUI = {mount,render,section};
+  function focusAction(id) {
+    const button = $(`#action-grid [data-action="${id}"]`);
+    const card = button?.closest('.action-card');
+    if (!card) return;
+    let heading = card.previousElementSibling;
+    while (heading && !heading.classList.contains('action-group-title')) heading = heading.previousElementSibling;
+    if (heading) ui.action = heading.textContent;
+    actionPage();
+    card.scrollIntoView({block:'nearest'});
+    if (!button.disabled) button.focus({preventScroll:true});
+  }
+  window.CampusUI = {mount,render,section,focusAction};
 })();

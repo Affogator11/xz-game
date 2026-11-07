@@ -1,0 +1,184 @@
+/* Shared school gauges and student profile cards. */
+.status-tag {
+  display: inline-block;
+  border-radius: 5px;
+  padding: 1px 5px;
+  background: #edf0e8;
+  color: #405549;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.45;
+  white-space: nowrap;
+}
+.status-tag.good { background: #e2edd8; color: #31562c; }
+.status-tag.watch { background: #f7ebcb; color: #6e4b13; }
+.status-tag.low { background: #f5e0d9; color: #8d3327; }
+
+.status-meter {
+  --low-band: #efc1b4;
+  --high-band: #c4d8aa;
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 5px;
+  margin-top: 5px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, var(--low-band) var(--band-start),
+    #e9d399 var(--band-start) var(--band-end), var(--high-band) var(--band-end));
+}
+.status-meter.reversed { --low-band: #c4d8aa; --high-band: #efc1b4; }
+.status-meter i {
+  position: absolute;
+  left: var(--position);
+  top: -2px;
+  width: 3px;
+  height: 9px;
+  border-radius: 2px;
+  background: #183a2e;
+  transform: translateX(-50%);
+}
+
+#view-overview .status-heading {
+  display: flex !important;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 24px;
+  gap: 8px;
+}
+#school-status-priority {
+  background: #f4ebd3;
+  color: #644619;
+  border: 0;
+  border-radius: 5px;
+  min-height: 25px;
+  padding: 2px 9px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+#school-status-priority:disabled { background: #e8eee1; color: #365538; cursor: default; }
+#metric-grid .school-status-card { color: var(--ink); text-align: left; width: 100%; cursor: pointer; }
+#metric-grid .school-status-card:hover { background: #f6f7ec; }
+#metric-grid .school-status-card.status-priority { box-shadow: inset 0 0 0 1px #b07935; }
+.status-card-label { display: flex; justify-content: space-between; align-items: center; gap: 4px; }
+.status-card-label small { white-space: nowrap; }
+.school-status-card:focus-visible, .student-line:focus-visible, #school-status-priority:focus-visible {
+  outline: 2px solid #8a5a22;
+  outline-offset: 2px;
+}
+.status-detail-title { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.status-detail-title strong { font-size: 32px; font-variant-numeric: tabular-nums; }
+.status-detail-title strong small { font-size: 15px; font-weight: 500; }
+.status-profile p { margin: 10px 0; font-size: 14px; line-height: 1.65; }
+.status-profile .status-scale { font-size: 12px; }
+
+#class-grid .class-card .class-stats { grid-template-columns: repeat(3,minmax(0,1fr)); }
+#class-grid .class-watch { background: #f7ebcb; color: #6e4b13; }
+.class-raw-stats { margin: 8px 0; }
+#student-roster-panel:not([hidden]) { display: flex; flex-direction: column; min-height: 0; }
+#student-roster-panel .table-toolbar { flex-shrink: 0; }
+.student-roster {
+  min-height: 0;
+  overflow: auto;
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  align-content: start;
+  gap: 8px;
+  padding: 8px 12px;
+}
+.student-roster-empty { grid-column: 1 / -1; padding: 12px 0; color: var(--muted); }
+#student-roster-panel .table-toolbar label { white-space: nowrap; min-width: 0; }
+.student-line, .class-student-list .student-line {
+  display: grid;
+  grid-template-columns: 34px minmax(0,1fr) auto;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 52px;
+  padding: 6px 9px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fffef9;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+.student-line:hover { background: #f2f5e9; }
+.student-line-name { min-width: 0; display: grid; }
+.student-line .student-line-name b { font-size: 15px; }
+.student-line .student-line-name small { font-size: 12px; color: #516253; }
+.student-rating {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 36px;
+  border: 1px solid #cdd8c5;
+  border-radius: 7px;
+  background: #ecf0e7;
+  color: #2d5040;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
+}
+.student-rating.top { background: #e9d9aa; border-color: #c6a75e; color: #664518; }
+.student-rating.high { background: #d8e8c5; border-color: #a8bf90; color: #30532b; }
+.student-rating.growing { background: #eee9de; color: #635135; }
+.student-rating.foundation { background: #efdfd8; color: #863c31; }
+.student-hero {
+  display: grid;
+  grid-template-columns: 59px minmax(0,1fr);
+  gap: 13px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f4f6eb;
+}
+.student-hero .student-rating { width: 59px; height: 63px; font-size: 36px; }
+.student-hero h3 { margin: 3px 0 7px; font-size: 17px; }
+.student-hero small { font-size: 12px; color: #4b6153; }
+.student-form-line { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 10px 0; font-size: 13px; }
+.cultivation-tip { background: #eef3e5; border: 1px solid #d6e1c8; border-radius: 8px; padding: 10px 12px; margin: 10px 0; }
+.cultivation-tip h3 { margin: 1px 0 4px; font-size: 16px; }
+.cultivation-tip p { margin: 4px 0; font-size: 13px; line-height: 1.55; }
+.cultivation-tip small { color: #465940; font-size: 12px; }
+.cultivation-tip .btn { margin: 6px 6px 0 0; }
+.student-cultivation button { min-height: 65px; }
+.student-cultivation button.recommended { border: 1px solid #698a60; background: #e7efdf; }
+.student-cultivation button span { display: block; margin-top: 2px; font-size: 12px; }
+.student-cultivation button:disabled { opacity: .62; cursor: not-allowed; }
+.student-action-feedback { background: #e2edd8; border-radius: 6px; padding: 8px 10px; font-size: 13px; color: #31562c; }
+.student-raw-stats .student-ability-grid { margin-top: 8px; }
+.student-raw-stats .status-meter i { height: 9px; margin: 0; background: #183a2e; }
+.student-raw-stats p { font-size: 13px; line-height: 1.55; }
+.class-student-list .student-line { margin-bottom: 5px; }
+.class-roster-heading { margin-bottom: 6px; }
+
+@media(max-width:780px) {
+  #view-overview .status-heading { min-height: 23px; }
+  #school-status-priority { min-height: 24px; }
+  #metric-grid .school-status-card { padding: 5px 6px !important; }
+  #metric-grid .school-status-card strong { margin: 2px 0 0; line-height: 1; }
+  .school-status-card .status-tag { padding-inline: 2px; font-size: 11px; }
+  .school-status-card .status-meter { margin-top: 4px; height: 4px; }
+  .school-status-card .status-meter i { height: 8px; }
+  #grade-summary .metric-card .delta { display: block; font-size: 11px; line-height: 1.25; }
+  #class-grid .class-card .class-stats { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
+  #class-grid .class-card .class-stats > div { padding: 3px; }
+  #class-grid .class-card .class-stats > div:first-child { grid-column: 1 / -1; }
+  .student-roster { grid-template-columns: 1fr; gap: 5px; padding: 6px 8px; }
+  #student-roster-panel .table-toolbar { flex-wrap: wrap; }
+  #student-roster-panel .table-toolbar .search-box { flex: 1 1 100%; }
+  .student-cultivation button { min-height: 64px; }
+}
+
+@media(max-width:780px) and (max-height:720px) {
+  #view-overview.active { gap: 5px; }
+  #view-overview .school-journey { padding-block: 6px; }
+  #metric-grid .school-status-card { padding-block: 4px !important; }
+}
+
+@media(max-width:359px) {
+  #metric-grid .status-card-label small { font-size: 11px !important; }
+  #metric-grid .status-tag { font-size: 10px; }
+}
