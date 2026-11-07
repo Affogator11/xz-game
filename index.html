@@ -6,11 +6,11 @@
   <meta name="theme-color" content="#17372e">
   <meta name="description" content="秋秋一中校长模拟器：一款离线可玩的学校经营策略游戏。">
   <title>秋秋一中：校长志</title>
-  <link rel="stylesheet" href="styles.css?v=20261107a">
-  <link rel="stylesheet" href="game-ui.css?v=20261107a">
-  <link rel="stylesheet" href="compact-ui.css?v=20261107a">
-  <link rel="stylesheet" href="readable-ui.css?v=20261107a">
-  <link rel="stylesheet" href="status-view.css?v=20261107a">
+  <link rel="stylesheet" href="styles.css?v=20261107b">
+  <link rel="stylesheet" href="game-ui.css?v=20261107b">
+  <link rel="stylesheet" href="compact-ui.css?v=20261107b">
+  <link rel="stylesheet" href="readable-ui.css?v=20261107b">
+  <link rel="stylesheet" href="status-view.css?v=20261107b">
 </head>
 <body>
   <a class="skip-link" href="#main">跳到主要内容</a>
@@ -97,7 +97,7 @@
           <section class="week-mission card"><p class="eyebrow">校长，请批示</p><h3>这一周，由你决定</h3><div class="ui-ap"><span>本周行动力</span><b id="ui-ap-count">4 / 4</b></div><div id="ui-ap-pips" class="ap-pips" aria-hidden="true"></div><p id="ui-week-note"></p><button id="ui-brief-button" class="btn btn-primary btn-block">安排本周工作 →</button><div class="weekly-priorities-head"><span>秘书圈出的重点</span><small>根据当前校情推荐</small></div><div id="ui-priorities"></div></section>
         </div>
         <section class="school-journey"><div class="journey-seal" aria-hidden="true">志</div><div><p class="kicker">强校之路</p><h3 id="ui-goal-title">从全市第七出发</h3><p id="ui-goal-copy"></p><div id="ui-goal-bar" class="journey-progress" role="progressbar" aria-label="与前一名学校的积分比例" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="ui-goal-progress"></i></div></div><button class="btn btn-secondary" data-view-jump="map">积分榜 ↗</button></section>
-        <div class="section-heading status-heading"><h3>学校状态</h3><button id="school-status-priority" type="button"></button></div>
+        <div class="section-heading status-heading"><h3 id="school-status-heading">学校状态</h3><button id="school-status-priority" type="button"></button></div>
         <div class="metric-grid office-metric-grid" id="metric-grid"></div>
         <details id="ui-archive" class="campus-archive"><summary><span>校务手记</span><small>台历 · 待办 · 校内消息 · 发展曲线</small><b aria-hidden="true">＋</b></summary><span id="pending-count" hidden>0</span>
         <div class="desk-lower-grid">
@@ -153,7 +153,7 @@
       </section>
 
       <section id="view-policies" class="view" aria-labelledby="policies-title">
-        <div class="page-head"><div><p class="eyebrow">校务制度与学生治理</p><h2 id="policies-title">学校政策</h2><p>制度改变校园日常，也影响学生的信任。展开一项制度，再做取舍。</p></div><div class="policy-ap"><span>修改政策消耗</span><strong>1 行动点</strong></div></div>
+        <div class="page-head"><div><p class="eyebrow">校务制度与学生治理</p><h2 id="policies-title">学校政策</h2><p>制度改变校园日常，也影响学生的信任。展开一项制度，再做取舍。</p></div><div class="policy-ap"><span id="policy-switch-label">修改政策消耗</span><strong id="policy-switch-value">1 行动点</strong></div></div>
         <div class="location-guide"><span aria-hidden="true">规</span><p id="ui-policy-note"></p></div>
         <div id="policy-summary" class="policy-summary"></div>
         <div id="ui-policy-tabs" class="focus-tabs" aria-label="选择制度分类"></div>
@@ -174,7 +174,7 @@
       </section>
 
       <section id="view-actions" class="view" aria-labelledby="actions-title">
-        <div class="page-head"><div><p class="eyebrow">校长行动</p><h2 id="actions-title">本周行动</h2><p>行动消耗资金、校长精力或人情，每周一恢复行动点。</p></div><div class="action-points"><span>本周行动点</span><strong id="ap-label">0 / 4</strong></div></div>
+        <div class="page-head"><div><p class="eyebrow">校长行动</p><h2 id="actions-title">本周行动</h2><p>行动消耗资金、校长精力或人情，每周一恢复行动点。</p></div><div class="action-points"><span id="action-resource-label">本周行动点</span><strong id="ap-label">0 / 4</strong></div></div>
         <div class="location-guide"><span aria-hidden="true">行</span><p id="ui-action-note"></p></div>
         <div id="action-command" class="action-command"></div>
         <div id="ui-action-tabs" class="focus-tabs" aria-label="选择行动方向"></div>
@@ -195,22 +195,22 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <div id="time-transition" class="time-transition" hidden aria-live="polite"><div class="time-transition-card"><span class="seal">秋</span><p>校历推进中</p><strong id="time-transition-date">下一周</strong><div class="time-progress"><i></i></div><small>学生成长、学校治理与其他学校行动正在结算</small></div></div>
 
-  <script src="data.js?v=20261107a"></script>
-  <script src="school-rules.js?v=20261107a"></script>
-  <script src="game-flow.js?v=20261107a"></script>
-  <script src="school-operations.js?v=20261107a"></script>
-  <script src="league-center.js?v=20261107a"></script>
-  <script src="campus-event-legacy.js?v=20261107a"></script>
-  <script src="campus-event-library.js?v=20261107a"></script>
-  <script src="campus-event-expansion.js?v=20261107a"></script>
-  <script src="campus-event-stories.js?v=20261107a"></script>
-  <script src="event-content-244.js?v=20261107a"></script>
-  <script src="campus-event-catalog.js?v=20261107a"></script>
-  <script src="campus-event-results.js?v=20261107a"></script>
-  <script src="campus-event-conditions.js?v=20261107a"></script>
-  <script src="campus-events.js?v=20261107a"></script>
-  <script src="status-view.js?v=20261107a"></script>
-  <script src="game-ui.js?v=20261107a"></script>
-  <script src="game.js?v=20261107a"></script>
+  <script src="data.js?v=20261107b"></script>
+  <script src="school-rules.js?v=20261107b"></script>
+  <script src="game-flow.js?v=20261107b"></script>
+  <script src="school-operations.js?v=20261107b"></script>
+  <script src="league-center.js?v=20261107b"></script>
+  <script src="campus-event-legacy.js?v=20261107b"></script>
+  <script src="campus-event-library.js?v=20261107b"></script>
+  <script src="campus-event-expansion.js?v=20261107b"></script>
+  <script src="campus-event-stories.js?v=20261107b"></script>
+  <script src="event-content-244.js?v=20261107b"></script>
+  <script src="campus-event-catalog.js?v=20261107b"></script>
+  <script src="campus-event-results.js?v=20261107b"></script>
+  <script src="campus-event-conditions.js?v=20261107b"></script>
+  <script src="campus-events.js?v=20261107b"></script>
+  <script src="status-view.js?v=20261107b"></script>
+  <script src="game-ui.js?v=20261107b"></script>
+  <script src="game.js?v=20261107b"></script>
 </body>
 </html>

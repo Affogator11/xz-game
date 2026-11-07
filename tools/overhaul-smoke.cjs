@@ -51,6 +51,47 @@ async function main(){
     await screenshot('overhaul-mobile-teachers',375,812);assert.equal(errors.length,0,JSON.stringify(errors));console.log('Layout checks passed.');return;
   }
   await check('all 12 school statuses visible, no safety stat',"[...document.querySelectorAll('#metric-grid .metric-card')].filter(x=>x.getClientRects().length).length===12 && !document.querySelector('#metric-grid').textContent.includes('安全')");
+  // Zhou's pressure talent uses the normal character selection and school actions.
+  await navigate(origin+'/');await click('#new-game-btn');await click('input[name="principal"][value="zhou"]');await click('#start-game-btn');
+  const zhou=await saved();
+  assert.equal(zhou.principalId,'zhou');
+  assert.equal(zhou.learningEfficiency,150);
+  await check('Zhou starts at 150% learning efficiency and shows it on the dashboard',"document.querySelector('#school-status-heading').textContent.includes('150.00%')");
+  await restore({...zhou,actionPoints:0});await click('[data-view="actions"]');
+  await check('Zhou can afford a two-point action with zero action points',"!document.querySelector('[data-action=teach]').disabled&&document.querySelector('[data-action=teach]').closest('article').textContent.includes('−2.00 个百分点')");
+  await click('[data-action=teach]');
+  const zhouSpent=await saved();
+  assert.equal(zhouSpent.learningEfficiency,148);
+  assert.equal(zhouSpent.actionPoints,0);
+  assert.equal(zhouSpent.authority,zhou.authority);
+  assert.equal(zhouSpent.money,zhou.money-25000);
+  await restore(zhouSpent);
+  await check('Zhou saves spent efficiency and restores the receipt without charging again',"{const s=JSON.parse(localStorage.getItem('qiu-principal-sim-v1'));s.learningEfficiency===148&&s.actionFeedback.rows.some(row=>row.key==='learningEfficiency'&&row.delta===-2)}");
+  await click('#action-result-close');await click('[data-view="policies"]');await click('.policy-group:not([hidden]) summary');
+  await check('policy preview combines action point cost and lost authority',"document.querySelector('[data-policy=hair][data-option=free] em').textContent.includes('−2.00 个百分点')");
+  await click('[data-policy=hair][data-option=free]');
+  const zhouPolicy=await saved();
+  assert.equal(zhouPolicy.learningEfficiency,146);
+  assert.equal(zhouPolicy.actionPoints,0);
+  assert.equal(zhouPolicy.authority,zhou.authority);
+  assert.equal(zhouPolicy.schoolPolicies.hair,'free');
+  await check('policy result reports the converted charge', "document.querySelector('#action-result-body').textContent.includes('−2.00 个百分点')");
+  await restore({...zhou,learningEfficiency:0});await click('[data-view="actions"]');
+  await check('depleted efficiency stays at zero and blocks paid school actions',"JSON.parse(localStorage.getItem('qiu-principal-sim-v1')).learningEfficiency===0&&document.querySelector('[data-action=teach]').disabled");
+  await restore({...zhou,learningEfficiency:100});await advance(1);const baseGrowth=await saved();
+  await restore(zhou);await advance(1);const boostedGrowth=await saved();
+  const positive=baseGrowth.students.filter(s=>s.dailyChange.academic>.03);
+  assert.ok(positive.length>100);
+  assert.ok(positive.every(s=>Math.abs(boostedGrowth.students.find(t=>t.id===s.id).dailyChange.academic-s.dailyChange.academic*1.5)<=.015));
+  console.log('PASS Zhou multiplies positive daily academic growth by 1.5');checks.push('Zhou daily growth boost');
+  const zhouWeek={...zhou,day:6,date:'2022-07-06T00:00:00+08:00'};
+  await restore(zhouWeek);await evaluate("GAME_DATA.principalData.find(p=>p.id==='zhou').bonus.pressure.weeklyAnger=0");await advance(1);const ordinaryWeek=await saved();
+  await restore(zhouWeek);await advance(1);const pressureWeek=await saved();
+  assert.equal(pressureWeek.day,7);
+  assert.ok(pressureWeek.students.every((s,i)=>Math.abs(s.anger-ordinaryWeek.students[i].anger-.1)<.005));
+  await restore(pressureWeek);
+  await check('Zhou adds 0.10 anger on the weekly boundary, with no repeat on reload',`JSON.parse(localStorage.getItem('qiu-principal-sim-v1')).students[0].anger===${pressureWeek.students[0].anger}`);
+  await restore(fresh);
   // Status guidance uses the same stored values and student actions as ordinary play.
   await check('home gauges label all twelve school positions and highlight one priority',"[...document.querySelectorAll('#metric-grid .status-meter')].length===12&&document.querySelectorAll('.school-status-card.status-priority').length===1&&document.querySelector('#school-status-priority').getClientRects().length>0");
   await click('[data-school-metric="teaching"]');
