@@ -24,7 +24,7 @@
 - 学习交流先发邀请，7天后答复；接受后选行政人员出访7天，岗位空缺锁定，归校恢复并提升能力。
 - 学生保留学业、自律、心态、潜力，另有愤怒、成绩；高分与高学业成长采用边际衰减。
 - 删除校园安全度，保障作用并入稳定度与满意度。首页十二项学校状态始终显示，界面数值至多两位小数。
-- 独立事件库244项，含66项后续事件，增加状态触发、负面分支与较强影响；每周3项、最多1项后续、至少1项单次事件。
+- 独立事件库282项，含78项后续事件。95项县中事件有四种贴合现场的决定，新增26项主事件和12项后续；每周3项、最多1项后续、至少1项单次事件。
 - 简化首页和各分页说明，提供单屏优先布局。长名册、档案和展开内容在各自区域查看。
 
 ## 简要操作
@@ -45,7 +45,8 @@
 | `game.js` | 经营循环、数值结算、任免、考试动画、存档和页面绑定 |
 | `game-ui.js` / `compact-ui.css` | 分区、分页、焦点管理与单屏布局 |
 | `campus-event-legacy.js` / `campus-event-library.js` / `campus-event-expansion.js` / `campus-event-stories.js` | 保留原事件编号、分支与叙事 |
-| `event-content-244.js` / `campus-event-catalog.js` | 新内容与244项唯一事件注册 |
+| `event-content-244.js` / `campus-event-choices.js` | 既有县中场景及各自的处理路线 |
+| `campus-event-season.js` / `campus-event-catalog.js` | 新事件与分支，统一注册282项事件 |
 | `campus-event-conditions.js` / `campus-events.js` | 状态检查、概率、冷却与周报调度 |
 | `campus-event-results.js` | 资金、情绪、满意度等实际影响执行 |
 
