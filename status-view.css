@@ -182,3 +182,163 @@
   #metric-grid .status-card-label small { font-size: 11px !important; }
   #metric-grid .status-tag { font-size: 10px; }
 }
+
+/* The office is the starting point for each part of the school. */
+#view-overview .office-heading h2 { margin-bottom: 2px; }
+#view-overview .office-heading .office-identity {
+  display: block;
+  margin: 0;
+  color: #516253;
+  font-size: 13px;
+}
+.week-mission.office-brief {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 11px;
+  flex-shrink: 0;
+}
+.office-brief h3, .office-brief p { margin: 0; }
+.office-brief h3 { font-size: 16px; line-height: 1.25; }
+.office-brief p { color: #516253; font-size: 13px; line-height: 1.4; }
+.week-mission.office-brief > .btn {
+  margin: 0;
+  min-height: 36px;
+  height: auto;
+  flex-shrink: 0;
+}
+.office-links {
+  display: grid;
+  grid-template-columns: repeat(6,minmax(0,1fr));
+  gap: 7px;
+  flex-shrink: 0;
+}
+.office-links button {
+  display: grid;
+  align-content: center;
+  gap: 1px;
+  min-width: 0;
+  min-height: 48px;
+  padding: 5px 8px;
+  text-align: left;
+  color: var(--ink);
+  background: #fffef9;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  cursor: pointer;
+}
+.office-links button:hover { background: #eef3e5; }
+.office-links b { font-size: 14px; line-height: 1.25; }
+.office-links small { color: #516253; font-size: 12px; line-height: 1.25; }
+
+/* Policy controls stay in flow, separate from the scrollable options. */
+#view-policies .policy-impact {
+  flex: 0 0 auto;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fffef9;
+}
+.policy-impact-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+}
+.policy-impact-heading > div:first-child { min-width: 0; }
+.policy-impact-heading h3 { margin: 0; font-size: 15px; }
+.policy-impact-heading p, .policy-charge { margin: 2px 0 0; color: #516253; font-size: 12px; }
+.policy-preview-buttons { display: flex; gap: 6px; flex-wrap: wrap; }
+.policy-preview-buttons .btn { min-height: 36px !important; }
+.policy-period-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.policy-period-tabs button {
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 4px 7px;
+  background: #fffef9;
+  color: var(--ink);
+  font-size: 12px;
+  cursor: pointer;
+}
+.policy-period-tabs button[aria-pressed="true"] { background: #e8f0df; border-color: #91a486; }
+.policy-meter-grid { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap: 5px; margin-top: 7px; }
+.policy-meter { padding: 5px 6px; min-width: 0; background: #f0f1e9; border-radius: 5px; }
+.policy-meter > span, .policy-meter > small { display: block; font-size: 12px; line-height: 1.35; }
+.policy-meter strong { display: block; font-size: 17px; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.policy-meter small b { white-space: nowrap; }
+.policy-meter.positive, .trait-stat-grid > .positive { background: #e2edd8; color: #31562c; }
+.policy-meter.negative, .trait-stat-grid > .negative { background: #f5e0d9; color: #8d3327; }
+#policy-recurring { margin-top: 5px; }
+#policy-recurring p { margin: 5px 0 0; font-size: 12px; line-height: 1.35; }
+#view-policies #ui-policy-tabs { flex-shrink: 0; }
+#view-policies #policy-groups { flex: 1 1 0; min-height: 0; overflow: auto; }
+#view-policies .policy-options { grid-template-columns: repeat(auto-fit,minmax(155px,1fr)); }
+#view-policies .policy-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 5px;
+  min-width: 0;
+  min-height: 0;
+  padding: 9px 10px;
+}
+#view-policies .policy-option em {
+  position: static;
+  inset: auto;
+  margin-top: auto;
+  text-align: left;
+  white-space: normal;
+  line-height: 1.35;
+}
+#view-policies .policy-option > small {
+  display: block !important;
+  font-size: 12px;
+  line-height: 1.4;
+}
+#view-policies .policy-option[aria-pressed="true"] { border-color: #57734c; box-shadow: inset 0 0 0 1px #57734c; background: #e8f0df; }
+.trait-stat-grid .trait-modifier {
+  display: block;
+  margin-top: 3px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.trait-caption { color: #516253; font-size: 13px; line-height: 1.45; }
+
+@media(max-width:780px) {
+  #view-overview .office-heading .office-identity { font-size: 12px; }
+  .office-links { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 5px; }
+  .office-links button { min-height: 44px; }
+  .office-links b { font-size: 13px; }
+  .policy-meter-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .policy-meter strong { font-size: 15px; }
+  #view-policies #ui-policy-tabs {
+    display: grid;
+    grid-template-columns: repeat(5,minmax(0,1fr));
+    gap: 4px;
+  }
+  #view-policies #ui-policy-tabs button {
+    min-width: 0;
+    min-height: 35px;
+    padding: 4px 2px;
+    font-size: 11px;
+    white-space: normal;
+  }
+  #view-policies .policy-options { grid-template-columns: 1fr; }
+}
+@media(max-width:780px) and (max-height:610px) {
+  #view-policies.active { overflow-y: auto; }
+  #view-policies #policy-groups { flex: 0 0 auto; overflow: visible; }
+}
+@media(max-width:780px) and (max-height:720px) {
+  #view-overview .office-brief { padding-block: 5px; }
+  #view-overview .office-brief p { font-size: 12px; }
+  #view-overview #metric-grid .school-status-card {
+    min-height: 48px !important;
+    padding-block: 3px !important;
+  }
+  #view-overview .office-metric-grid { gap: 4px !important; }
+}

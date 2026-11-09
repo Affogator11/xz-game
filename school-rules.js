@@ -9,7 +9,37 @@
   function softScore(raw){return clamp(raw<=600?raw:600+150*(1-Math.exp(-(raw-600)/150)),0,750)}
   function growth(academic,amount){return round(amount>0?amount*Math.max(.08,Math.pow(Math.max(0,1-academic/110),1.25)):amount)}
   const composite=s=>round(s.stats[0]*.55+s.stats[1]*.2+s.stats[2]*.15+s.stats[3]*.1);
-  function staff(raw){return raw.map(t=>{const stats=[t.stats[0]*.75+t.stats[1]*.25,t.stats[2]*.75+t.stats[5]*.25,t.stats[3],t.stats[4]].map(round),overall=round(stats.reduce((a,b)=>a+b,0)/4);return{...t,stats,overall,stars:Math.ceil(overall/20),signing:Math.round(3000+overall*220)}})}
+  // Teaching, management, communication and growth, in the same order as staff stats.
+  const traitModifiers = {
+    因材施教:[4,-2,2,0], 题海专家:[6,0,0,-3], 课堂掌控:[3,3,-3,0],
+    竞赛教练:[5,-3,0,1], 耐心细致:[0,-2,4,2], 数据敏锐:[2,3,-2,0],
+    家校能手:[-2,0,6,0], 课程革新:[3,-3,0,4], 铁面无私:[0,6,-3,0],
+    温和坚定:[0,2,3,-2], 资源整合:[-2,3,3,0], 青年先锋:[0,-3,1,6],
+    稳定军心:[-2,2,4,0], 高考研究:[5,0,-2,1], 行政老练:[-3,6,0,0],
+    招生伯乐:[-2,0,4,2]
+  };
+  function assignStaffStats(teacher, stats){
+    teacher.stats = stats.map(value=>clamp(value));
+    teacher.overall = round(teacher.stats.reduce((sum,value)=>sum+value,0)/4);
+    teacher.stars = Math.ceil(teacher.overall/20);
+    teacher.signing = Math.round(3000+teacher.overall*220);
+    return teacher;
+  }
+  function withTrait(stats, modifiers){
+    return stats.map((value,i)=>clamp(value+modifiers[i]));
+  }
+  function reduceStaffStats(stats){
+    if (stats.length!==6) return stats;
+    const [teaching,research,management,communication,growth,reliability] = stats;
+    return [teaching*.75+research*.25,management*.75+reliability*.25,communication,growth].map(round);
+  }
+  function staff(raw){
+    return raw.map(teacher=>{
+      const traitModifiersForTeacher = traitModifiers[teacher.trait] || [0,0,0,0];
+      const initialStats = withTrait(reduceStaffStats(teacher.stats),traitModifiersForTeacher);
+      return assignStaffStats({...teacher,initialStats,traitModifiers:traitModifiersForTeacher},initialStats);
+    });
+  }
   function students(count=1200,seed=261001){const rng=D.mulberry32(seed),legacy=D.generateStudentsLegacy(count,seed);return legacy.map((s,i)=>{const grade=1+Math.floor(i/Math.ceil(count/3)),c=i%5+1,elite=c>=4,base=elite?76:54+(c===1?3:c===2?-2:0),academic=clamp(base+(rng()-.5)*(elite?25:38)),stats=[academic,clamp(45+rng()*40),clamp(45+rng()*40),clamp(Math.max(academic,65+rng()*30))];const result={...s,grade,classNo:c,className:className(grade,c),track:c===3||c===5?'文科':'理科',elite,stats,anger:round(8+rng()*22)};result.composite=composite(result);result.tier=D.tierOf(result.composite);result.score=softScore(210+academic*5.2+stats[1]*.55+stats[2]*.4);return result})}
   D.generateStudentsLegacy=D.generateStudents;D.generateStudents=students;
   // Redistribute removed research/reliability weights to teaching and management.
@@ -43,7 +73,14 @@
     const home=s.schools.find(x=>x.id==='qiu');if(home&&s.power!==undefined)home.power=s.power;
     s.league??={version:1,points:Object.fromEntries(s.schools.map(x=>[x.id,round(x.power*10)])),played:{},history:[]};s.league.played??={};s.league.history??=[];
     s.schools.forEach(x=>{x.morale??=60;if(x.id==='qiu')x.students=s.students.length});
-    staffList.forEach(t=>{if(s.staffDevelopment[t.id]){t.stats=s.staffDevelopment[t.id].map(round);t.overall=round(t.stats.reduce((a,b)=>a+b,0)/4);t.stars=Math.ceil(t.overall/20);t.signing=Math.round(3000+t.overall*220)}});
+    for (const teacher of staffList) {
+      const saved = s.staffDevelopment[teacher.id];
+      if (saved && !s.staffTraitVersion) {
+        s.staffDevelopment[teacher.id] = withTrait(reduceStaffStats(saved),teacher.traitModifiers);
+      }
+      assignStaffStats(teacher,s.staffDevelopment[teacher.id] || teacher.initialStats);
+    }
+    s.staffTraitVersion = 1;
     delete s.map;delete s.claims;delete s.safety;return s;
   }
   function ranking(s){return [...s.schools].sort((a,b)=>(s.league.points[b.id]||0)-(s.league.points[a.id]||0)||b.power-a.power||a.id.localeCompare(b.id))}

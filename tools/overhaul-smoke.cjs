@@ -69,7 +69,7 @@ async function main(){
   await check('Zhou saves spent efficiency and restores the receipt without charging again',"{const s=JSON.parse(localStorage.getItem('qiu-principal-sim-v1'));s.learningEfficiency===148&&s.actionFeedback.rows.some(row=>row.key==='learningEfficiency'&&row.delta===-2)}");
   await click('#action-result-close');await click('[data-view="policies"]');await click('.policy-group:not([hidden]) summary');
   await check('policy preview combines action point cost and lost authority',"document.querySelector('[data-policy=hair][data-option=free] em').textContent.includes('−2.00 个百分点')");
-  await click('[data-policy=hair][data-option=free]');
+  await click('[data-policy=hair][data-option=free]');await click('#policy-confirm');
   const zhouPolicy=await saved();
   assert.equal(zhouPolicy.learningEfficiency,146);
   assert.equal(zhouPolicy.actionPoints,0);
@@ -127,6 +127,7 @@ async function main(){
   await screenshot('overhaul-teachers',1440,900);
   await click('#people-content .class-teacher-chips [data-person]');
   await check('teacher profile has four skills and affordable recruitment formula',"document.querySelectorAll('.teacher-stat-grid>span').length===4 && ![...document.querySelectorAll('.teacher-stat-grid small')].some(x=>['教研','稳定'].includes(x.textContent))");
+  await check('teacher dossier labels positive and negative ability changes', "document.querySelector('.trait-stat-grid .positive .trait-modifier').textContent.startsWith('+')&&document.querySelector('.trait-stat-grid .negative .trait-modifier').textContent.startsWith('−')");
   const teacherId=await evaluate("document.querySelector('#people-content .class-teacher-chips [data-person]').dataset.person");
   await click('[data-hire="promote"]');
   await check('promotion retains class teaching, executive role is filled',`{const s=JSON.parse(localStorage.getItem('qiu-principal-sim-v1'));Object.values(s.roles).includes(${JSON.stringify(teacherId)}) && Object.values(s.classTeachers).some(a=>Object.values(a.subjects).includes(${JSON.stringify(teacherId)}))}`);
@@ -177,9 +178,33 @@ async function main(){
   // All-school AI matches still run inside the weekly cycle and invitations use a brief slot.
   const ai=JSON.parse(JSON.stringify(fresh));ai.day=6;ai.date='2022-07-06T00:00:00+08:00';ai.inviteWaitWeeks=5;await restore(ai);await advance(1);
   await check('AI schools play each other and invitations occupy one of three items',"{const s=JSON.parse(localStorage.getItem('qiu-principal-sim-v1'));s.rivalExamHistory.length===3&&s.weeklyBrief.items.length===3&&s.weeklyBrief.items.filter(x=>x.event?.kind==='aiInvite').length===1}");
-  // Safety redistribution and a real policy change keep clear, saved units.
-  await restore(fresh);await click('[data-view="policies"]');await click('.policy-group:not([hidden]) summary');await click('[data-policy="hair"][data-option="forced"]');
-  await check('policy changes cost one action point and preserve two-decimal state',"{const s=JSON.parse(localStorage.getItem('qiu-principal-sim-v1'));s.actionPoints===3&&s.schoolPolicies.hair==='forced'&&s.authority===73&&document.querySelector('.policy-options').textContent.includes('30天')}");
+  // The office leads into the policy preview and mobile controls remain hittable.
+  await restore(fresh);await send('Emulation.setDeviceMetricsOverride',{width:375,height:667,deviceScaleFactor:1,mobile:true});await pause(150);
+  await check('all six office destinations are accessible above the mobile time controls',
+    "document.querySelector('#overview-title').textContent==='校长办公室'&&document.querySelectorAll('.office-links button').length===6&&[...document.querySelectorAll('.office-links button')].every(b=>b.getBoundingClientRect().bottom<=document.querySelector('.time-controls').getBoundingClientRect().top+1)");
+  await click('.office-links [data-view-jump="policies"]');
+  await click('.policy-group:not([hidden]) summary');await click('[data-policy="hair"][data-option="forced"]');
+  await check('selecting a policy previews the tradeoffs without spending resources',
+    "{const s=JSON.parse(localStorage.getItem('qiu-principal-sim-v1'));s.actionPoints===4&&s.schoolPolicies.hair==='limited'&&document.querySelector('[data-policy-metric=anger]').classList.contains('negative')&&document.querySelector('[data-policy-metric=studentDiscipline]').classList.contains('positive')}");
+  await check('the policy confirmation buttons can be tapped on a short phone',
+    "['#policy-confirm','#policy-cancel'].every(q=>{const b=document.querySelector(q),r=b.getBoundingClientRect();return b.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2));})");
+  await check('short phone keeps a scrollable policy option area below the preview',
+    "document.querySelector('#policy-groups').getBoundingClientRect().height>=90");
+  await screenshot('office-policy-preview-mobile',375,667);
+  await click('[data-policy-period=ongoing]');
+  await check('ongoing policy effects remain visible in their own pane',
+    "!document.querySelector('#policy-recurring').hidden&&document.querySelector('#policy-recurring [data-policy-metric=studentDiscipline]').classList.contains('positive')");
+  await click('[data-policy-period=instant]');
+  await click('#policy-cancel');
+  await check('cancel closes the preview without changing the policy',"!document.querySelector('#policy-confirm')&&JSON.parse(localStorage.getItem('qiu-principal-sim-v1')).schoolPolicies.hair==='limited'");
+  await click('[data-policy="hair"][data-option="forced"]');
+  const stabilityPreview=await evaluate("Number(document.querySelector('[data-policy-metric=stability] small').textContent.match(/→ ([0-9.]+)/)[1])");
+  await check('a scrolled policy option remains tappable and its cost stays inside the card',
+    "(()=>{const b=document.querySelector('[data-policy=hair][data-option=forced]');b.scrollIntoView({block:'start'});const r=b.getBoundingClientRect(),c=b.querySelector('em').getBoundingClientRect(),panel=document.querySelector('#policy-groups').getBoundingClientRect();const y=Math.min(r.bottom,panel.bottom)-4;return r.top>=panel.top-1&&c.bottom<=r.bottom&&b.contains(document.elementFromPoint(r.x+r.width/2,y));})()");
+  await click('#policy-confirm');
+  await check('policy confirmation applies the previewed stability, authority and cost',
+    `{const s=JSON.parse(localStorage.getItem('qiu-principal-sim-v1'));s.actionPoints===3&&s.schoolPolicies.hair==='forced'&&s.authority===73&&s.stability===${stabilityPreview}}`);
+  await click('#action-result-close');
   await restore(fresh);await click('[data-view="finance"]');await check('small facility growth rates survive save and remain visible per month',"document.querySelector('#facility-detail').textContent.includes('0.04')");
   // Global discipline offices must affect actual students, not only their office cards.
   const admin=JSON.parse(JSON.stringify(fresh));admin.roles['政教处主任']=teacherId;admin.roleOrigins['政教处主任']='teacher';await restore(fresh);await evaluate('Math.random=()=>.5');await advance(1);const withoutAdmin=await saved();await restore(admin);await evaluate('Math.random=()=>.5');await advance(1);const withAdmin=await saved();assert.ok(withAdmin.students[0].dailyChange.discipline>withoutAdmin.students[0].dailyChange.discipline);checks.push('discipline office benefits reach real student growth');console.log('PASS discipline office benefits reach real student growth');

@@ -38,9 +38,8 @@
     actions = api;
     $$('#main-nav [data-view]').forEach(b => {
       $('.nav-icon', b).innerHTML = icon(b.dataset.view);
-      const labels={overview:['校园','校园'],map:['学校联赛','联赛'],people:['组织人事','人事'],students:['学生学业','学生'],policies:['学校政策','政策'],finance:['财务资产','财务'],actions:['校长行动','行动']},label=labels[b.dataset.view];b.lastElementChild.innerHTML=`<span class="nav-full">${label[0]}</span><span class="nav-short">${label[1]}</span>`;b.setAttribute('aria-label',label[0]);
+      const labels={overview:['校长办公室','首页'],map:['学校联赛','联赛'],people:['组织人事','人事'],students:['学生学业','学生'],policies:['学校政策','政策'],finance:['财务资产','财务'],actions:['校长行动','行动']},label=labels[b.dataset.view];b.lastElementChild.innerHTML=`<span class="nav-full">${label[0]}</span><span class="nav-short">${label[1]}</span>`;b.setAttribute('aria-label',label[0]);
     });
-    $('#ui-brief-button').onclick = () => resume();
     $('#ui-help-button').onclick = () => $('#ui-help').showModal();
     $('#ui-mobile-help').onclick = () => $('#ui-help').showModal();
     $('#ui-help-close').onclick = () => $('#ui-help').close();
@@ -83,37 +82,31 @@
       }
     }).observe($('#drawer-body'), {childList:true});
   }
-  function resume() {
+  function resume(task) {
     if (!current) return;
     if (current.eventFeedback) actions.feedback();
     else if (current.weeklyBrief) actions.brief();
     else if (current.pendingCampusEvent) actions.event();
-    else actions.view('actions');
+    else {
+      actions.view(task?.view || 'actions');
+      if (task?.id.startsWith('action-')) focusAction(task.id.slice(7));
+    }
   }
   function render(state, context) {
     if (!state) return;
     current = state;
     const exchangeNotice=state.exchangeRequests.some(x=>x.status==='accepted');$('#main-nav [data-view=map]').dataset.notice=String(exchangeNotice);
 
-    const ranked = SchoolRules.ranking(state), rank = ranked.findIndex(s => s.id === 'qiu')+1;
-    const rival = ranked[rank-2], gap = rival ? Math.max(0,state.league.points[rival.id]-state.league.points.qiu) : 0;
-    $('#ui-week').textContent = `第 ${Math.floor((state.day-1)/7)+1} 周`;
-    $('#ui-chapter').textContent = rank <= 3 ? '第三章 · 向地方强校迈进' : rank <= 5 ? '第二章 · 在全市站稳脚跟' : '第一章 · 从一所县中开始';
-    $('#ui-goal-title').textContent = rival ? `下一站，超越${rival.short || rival.name}` : '守住全市第一的荣光';
-    $('#ui-goal-copy').textContent = rival ? `全市第 ${rank} 名 · 距前一名还差 ${gap.toFixed(2)} 积分` : '教学、队伍与校园生活，都是守住领先的根基。';
-    $('#ui-goal-progress').style.width = `${rival ? Math.min(100,state.league.points.qiu/Math.max(1,state.league.points[rival.id])*100) : 100}%`;
-    $('#ui-goal-bar').setAttribute('aria-valuenow', String(Math.round(rival ? Math.min(100,state.league.points.qiu/Math.max(1,state.league.points[rival.id])*100) : 100)));
-    $('#ui-ap-count').textContent = `${state.actionPoints} / ${state.maxActionPoints}`;
-    $('#ui-ap-pips').innerHTML = Array.from({length:state.maxActionPoints}, (_,i) => `<i class="${i < state.actionPoints ? 'filled' : ''}"></i>`).join('');
-    const remaining = state.weeklyBrief?.items.filter(x => !x.done).length || 0;
-    $('#ui-brief-button').textContent = state.eventFeedback ? '查看批示结果 →' : remaining ? `处理工作简报 · ${remaining} 项 →` : state.pendingCampusEvent ? '处理校园来文 →' : '安排本周工作 →';
-    $('#ui-week-note').textContent = remaining ? '校务等待你的批示，处理后即可继续推进。' : state.actionPoints ? '先花一点时间经营校园，再迎接新的一周。' : '行动点已用完。推进校历，周一恢复行动点。';
-    $('#ui-priorities').innerHTML = context.advice.slice(0,3).map((item,i) => `<button class="quest-row" data-quest="${i}"><span class="quest-number">0${i+1}</span><span><b>${escape(item.title)}</b></span><span aria-hidden="true">↗</span></button>`).join('');
-    $$('[data-quest]').forEach(b => b.onclick = () => {
-      const item=context.advice[Number(b.dataset.quest)], id=item.id.replace('action-','');
-      if(item.view==='actions')ui.action=['teach','materials'].includes(id)?'教学与成绩':['visit','club','care','safety'].includes(id)?'学生与校园':id==='austerity'?'财政管理':'人才与资源';
-      actions.view(item.view);
-    });
+    $('#ui-week').textContent = `任期第 ${Math.floor((state.day-1)/7)+1} 周`;
+    const remaining = state.weeklyBrief?.items.filter(item=>!item.done).length || 0;
+    const next = context.advice.find(item=>item.available) || context.advice[0];
+    $('#office-brief-note').textContent = state.eventFeedback ? '有批示结果待查看'
+      : remaining ? `${remaining} 项校务待批示`
+      : state.pendingCampusEvent ? '有一份校园来文待处理'
+      : next ? `建议先${next.title}` : '查看当前校情，安排下一步。';
+    $('#ui-brief-button').textContent = state.eventFeedback ? '查看批示结果'
+      : remaining ? '打开工作简报' : state.pendingCampusEvent ? '处理校园来文' : '前往处理';
+    $('#ui-brief-button').onclick = () => resume(next);
     $('#ui-people-note').textContent = `管理岗已任命 ${Object.keys(state.roles).length} / 12 · 待任人才 ${state.candidateIds.length} 人。先组建班子，再精调师资。`;
     $('#ui-student-note').textContent = `${state.students.length} 名学生的成长正在发生。先选年级，再走进班级安排教师、关心学生。`;
     const anger = state.students.reduce((sum,s) => sum+s.anger,0)/Math.max(1,state.students.length);

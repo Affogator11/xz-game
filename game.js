@@ -10,6 +10,7 @@
   const round2=n=>Math.round(n*100)/100;
   const signed=(n,d=2)=>`${n>=0?'+':'−'}${Math.abs(n).toFixed(2)}`;
   const percent=n=>`${Math.round(n)}%`;
+  let pendingPolicy=null, policyImpactPeriod='instant';
   let teacherGrade='1',displayedReportId=null,activeCompetition=null,editingExamId=null;
   let state=null, selectedPrincipal=null, selectedSchool='qiu', peopleTab='management', studentTab='classes', calendarOffset=0, examTargetId=null, toastTimer, timeAdvancing=false, queuedEvent=null;
   const allStaff=SchoolRules.staff(D.generateStaff().map((t,i)=>{const rng=D.mulberry32(78321+i*7919),shift=Math.round((rng()-.5)*36);t.stats=t.stats.map(v=>D.clamp(v+shift,25,99));t.overall=round2(t.stats.reduce((a,b)=>a+b,0)/t.stats.length);t.stars=Math.ceil(t.overall/20);t.stars=D.clamp(Math.ceil(t.overall/20),1,5);t.signing=8000+t.overall*1200;return t}));
@@ -95,14 +96,27 @@
   function roleDef(name){return D.roleDefinitions.find(r=>r.name===name)}
   function roleFit(role,t){return round2(D.clamp(t.stats.reduce((sum,v,i)=>sum+v*roleDef(role).weights[i],0)+(principal().stats[3]-50)*.05,0,100))}
 
-  function governanceSnapshot(){const entries=Object.entries(state.roles).filter(([role,id])=>staffById(id)&&!SchoolRules.locked(state,role)).map(([role,id])=>({role,id,fit:roleFit(role,staffById(id))})),base=38+principal().stats[0]*.2+state.authority*.1+state.adminModifier+(facilityTotals().adminEfficiency||0),support=entries.reduce((sum,e)=>sum+(roleDef(e.role).effects.adminEfficiency||0)*e.fit*.07,0),derivedAdmin=round2(D.clamp((base+support*.25)/(1-support*.0075),0,100)),efficiencyFactor=round2(.25+derivedAdmin*.0075),totals={adminEfficiency:0,staffSatisfaction:0,teacherSatisfaction:0,studentSatisfaction:0,stabilityBonus:0,authority:0,teaching:0,academics:0,prestige:0,teacherGrowth:0,studentAcademic:0,studentDiscipline:0,studentMindset:0,expenseReduction:0};entries.forEach(entry=>Object.entries(roleDef(entry.role).effects).forEach(([k,v])=>{const def=roleDef(entry.role);if(def.grade&&['studentAcademic','studentDiscipline','studentMindset'].includes(k))return;totals[k]=(totals[k]||0)+v*entry.fit*efficiencyFactor*(def.grade&&k==='studentSatisfaction'?1/3:1)}));return{entries,totals,derivedAdmin,efficiencyFactor,expenseReduction:D.clamp(totals.expenseReduction*.0012,0,.08)}}
+  function governanceSnapshot(authority=state.authority){const entries=Object.entries(state.roles).filter(([role,id])=>staffById(id)&&!SchoolRules.locked(state,role)).map(([role,id])=>({role,id,fit:roleFit(role,staffById(id))})),base=38+principal().stats[0]*.2+authority*.1+state.adminModifier+(facilityTotals().adminEfficiency||0),support=entries.reduce((sum,e)=>sum+(roleDef(e.role).effects.adminEfficiency||0)*e.fit*.07,0),derivedAdmin=round2(D.clamp((base+support*.25)/(1-support*.0075),0,100)),efficiencyFactor=round2(.25+derivedAdmin*.0075),totals={adminEfficiency:0,staffSatisfaction:0,teacherSatisfaction:0,studentSatisfaction:0,stabilityBonus:0,authority:0,teaching:0,academics:0,prestige:0,teacherGrowth:0,studentAcademic:0,studentDiscipline:0,studentMindset:0,expenseReduction:0};entries.forEach(entry=>Object.entries(roleDef(entry.role).effects).forEach(([k,v])=>{const def=roleDef(entry.role);if(def.grade&&['studentAcademic','studentDiscipline','studentMindset'].includes(k))return;totals[k]=(totals[k]||0)+v*entry.fit*efficiencyFactor*(def.grade&&k==='studentSatisfaction'?1/3:1)}));return{entries,totals,derivedAdmin,efficiencyFactor,expenseReduction:D.clamp(totals.expenseReduction*.0012,0,.08)}}
 
   function recalculateAdministration(){state.adminEfficiency=governanceSnapshot().derivedAdmin;state.management=state.adminEfficiency}
 
   function policyTotals(){const totals={studentAcademic:0,studentDiscipline:0,studentMindset:0,studentSocial:0,teacherSatisfaction:0};state.activePolicies.forEach(p=>Object.entries(p.effects||{}).forEach(([k,v])=>totals[k]=(totals[k]||0)+v));return totals}
-  function schoolPolicyTotals(){const totals={stability:0,authority:0,stabilityBonus:0,adminEfficiency:0,studentAcademic:0,studentDiscipline:0,studentMindset:0,studentAnger:0,studentSatisfaction:0,teacherSatisfaction:0};D.schoolPolicyDefinitions.forEach(def=>{const selected=def.options.find(x=>x.id===state.schoolPolicies[def.id])||def.options[0];Object.entries(selected.effects||{}).forEach(([k,v])=>totals[k]=(totals[k]||0)+v)});return totals}
+  function schoolPolicyTotals(policies=state.schoolPolicies){const totals={stability:0,authority:0,stabilityBonus:0,adminEfficiency:0,studentAcademic:0,studentDiscipline:0,studentMindset:0,studentAnger:0,studentSatisfaction:0,teacherSatisfaction:0};D.schoolPolicyDefinitions.forEach(def=>{const selected=def.options.find(x=>x.id===policies[def.id])||def.options[0];Object.entries(selected.effects||{}).forEach(([k,v])=>totals[k]=(totals[k]||0)+v)});return totals}
   function averageAnger(list=state.students){return list.length?list.reduce((a,s)=>a+(s.anger||0),0)/list.length:0}
-  function stabilitySnapshot(){const g=governanceSnapshot(),p=schoolPolicyTotals(),leadership=g.entries.length/D.roles.length*100,anger=averageAnger(),components={校长权威:state.authority*.18,行政效率:state.adminEfficiency*.2,职工满意:state.staffSatisfaction*.15,教师满意:state.teacherSatisfaction*.15,学生满意:state.studentSatisfaction*.15,学生情绪:(100-anger)*.12,领导层:leadership*.05,制度保障:p.stability+p.authority*.2+p.adminEfficiency*.2+state.stabilityBonus-Math.min(10,vacancyReport().total*.25)};return{value:round2(D.clamp(Object.values(components).reduce((a,b)=>a+b,0),0,100)),components,leadership,anger,policy:{...p,stability:components.制度保障}}}
+  function stabilitySnapshot({
+    authority=state.authority, adminEfficiency=state.adminEfficiency,
+    studentSatisfaction=state.studentSatisfaction, anger=averageAnger(), policy=schoolPolicyTotals()
+  }={}){
+    const leadership = Object.keys(state.roles).filter(role=>staffById(state.roles[role])&&!SchoolRules.locked(state,role)).length/D.roles.length*100;
+    const components = {
+      校长权威:authority*.18, 行政效率:adminEfficiency*.2,
+      职工满意:state.staffSatisfaction*.15, 教师满意:state.teacherSatisfaction*.15,
+      学生满意:studentSatisfaction*.15, 学生情绪:(100-anger)*.12, 领导层:leadership*.05,
+      制度保障:policy.stability+policy.authority*.2+policy.adminEfficiency*.2+state.stabilityBonus-Math.min(10,vacancyReport().total*.25)
+    };
+    return {value:SchoolRules.clamp(Object.values(components).reduce((sum,value)=>sum+value,0)),
+      components,leadership,anger,policy:{...policy,stability:components.制度保障}};
+  }
 
   function weeklyForecast(){const t=governanceSnapshot().totals;return{power:(state.teaching+state.academics+state.adminEfficiency-165)*.002,teaching:t.teaching*.003,academics:t.academics*.003,staffSatisfaction:t.staffSatisfaction*.002,teacherSatisfaction:t.teacherSatisfaction*.002,studentSatisfaction:t.studentSatisfaction*.002,authority:t.authority*.002,adminEfficiency:0,stability:0,studentAnger:schoolPolicyTotals().studentAnger*7*.18}}
 
@@ -181,6 +195,7 @@
   function enterGame(newState){state=normalizeState(newState);if(isGaokaoSeason()&&!state.gaokao.mocks.some(x=>x.date===isoDay(getDate())))runGaokaoDailyMock();$('#start-screen').hidden=true;$('#setup-modal').hidden=true;$('#game-shell').hidden=false;renderAll();save();setTimeout(resumePendingFlow,0)}
 
   function showView(name){
+    if (name!=='policies') { pendingPolicy=null; policyImpactPeriod='instant'; }
     $$('.view').forEach(v=>v.classList.toggle('active',v.id===`view-${name}`));
     $$('#main-nav .nav-item').forEach(b=>b.classList.toggle('active',b.dataset.view===name));
     if(name==='map')renderMap();if(name==='people')renderPeople();if(name==='students')renderStudents();if(name==='policies')renderPolicies();if(name==='finance')renderFinance();if(name==='actions')renderActions();if(name==='overview')setTimeout(drawTrend,0);
@@ -201,11 +216,10 @@
     const sorted=SchoolRules.ranking(state);$('#rank-label').textContent=`#${sorted.findIndex(s=>s.id==='qiu')+1}`;$('#rank-label').parentElement.title='按八所学校综合实力动态排序。';
     $('#term-progress').style.width=percent(state.day/(state.termYears*365)*100);
     $('#term-days').textContent=`第 ${state.day} / ${state.termYears*365} 天`;
-    $('#daily-brief').textContent=briefText();
     renderOverview();renderMap();renderPeople();renderStudents();renderPolicies();renderFinance();renderActions();renderGaokaoSeason();window.CampusUI.render(state,{advice:secretaryAdviceCandidates()});
   }
   function schoolSeason(d){const m=d.getMonth()+1;return m===7||m===8?'暑假':m===1||m===2?'寒假':m>=9?'秋季学期':'春季学期'}
-  function briefText(){const m=getDate().getMonth()+1;if(state.debt>0)return`学校尚有 ${fmtMoney(state.debt)} 借款，已连续 ${state.debtMonths} 个月未还。`;if(m===9)return'新学期刚刚开始，稳定秩序与补齐管理岗位是当务之急。';if(m>=12||m<=2)return'期末与寒假临近，成绩、预算和教师状态需要一起照看。';return'校园运转平稳，但强校之路仍需要清晰取舍。'}
+
 
   function secretaryAdviceCandidates(){
     const vacancies=vacancyReport(),finance=monthlyFinance(),anger=averageAnger(),highAnger=state.students.filter(s=>s.anger>=70).length,roleVacancies=D.roles.length-Object.keys(state.roles).length,nextExam=state.scheduledEvents.filter(e=>e.status==='scheduled').sort((a,b)=>a.date.localeCompare(b.date))[0],deficit=finance.income-finance.expense;
@@ -291,7 +305,16 @@
     focus.onclick = () => showSchoolMetric(priority);
   }
 
-  function renderOverview(){renderSchoolStatus();$('#power-label').textContent=state.power.toFixed(2);$('#student-count').textContent=state.students.length;$('#staff-count').textContent=uniqueEmployeeIds().length+1;$('#pending-count').textContent=agenda().length;$('#desk-stability-note').textContent=`全市第 ${SchoolRules.rank(state)} · ${state.league.points.qiu.toFixed(2)} 积分`;$('#agenda-list').innerHTML=agenda().map(a=>`<div class="agenda-item"><div class="agenda-date"><b>${a.day}</b><small>${a.month}</small></div><div><p>${a.title}</p><span>${a.note}</span></div><button data-view-jump="${a.view}">›</button></div>`).join('');$$('#agenda-list [data-view-jump]').forEach(b=>b.onclick=()=>showView(b.dataset.viewJump));$('#news-feed').innerHTML=state.news.slice(0,6).map(n=>`<div class="news-item"><time>${n.date}</time><span>${n.text}</span></div>`).join('');renderCalendar();requestAnimationFrame(drawTrend)}
+  function renderOverview(){
+    renderSchoolStatus();
+    $('#office-rank').textContent = `全市第 ${SchoolRules.rank(state)} 名`;
+    $('#office-staff').textContent = `${uniqueEmployeeIds().length} 名教职工`;
+    $('#office-students').textContent = `${state.students.length} 名学生`;
+    $('#office-policies').textContent = `${D.schoolPolicyDefinitions.length} 项制度`;
+    $('#office-money').textContent = fmtMoney(state.money);
+    $('#office-action-budget').textContent = principal().bonus.pressure
+      ? `学习效率 ${state.learningEfficiency.toFixed(2)}%` : `剩 ${state.actionPoints} 行动点`;
+    $('#pending-count').textContent=agenda().length;$('#agenda-list').innerHTML=agenda().map(a=>`<div class="agenda-item"><div class="agenda-date"><b>${a.day}</b><small>${a.month}</small></div><div><p>${a.title}</p><span>${a.note}</span></div><button data-view-jump="${a.view}">›</button></div>`).join('');$$('#agenda-list [data-view-jump]').forEach(b=>b.onclick=()=>showView(b.dataset.viewJump));$('#news-feed').innerHTML=state.news.slice(0,6).map(n=>`<div class="news-item"><time>${n.date}</time><span>${n.text}</span></div>`).join('');renderCalendar();requestAnimationFrame(drawTrend)}
 
   function agenda(){const d=getDate(),scheduled=state.scheduledEvents.filter(e=>e.status==='scheduled'&&new Date(`${e.date}T23:59:59`)>=d).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,2).map(e=>{const x=new Date(`${e.date}T12:00:00`);return{day:x.getDate(),month:`${x.getMonth()+1}月`,title:`与${school(e.targetId).short}联考`,note:`${e.classKeys.length} 个班 · ${staffById(e.teacherId).name}负责`,view:'map'}});const defaults=[{day:d.getDate()+1>28?1:d.getDate()+1,month:'近期',title:'年级主任例会',note:'检查各年级教学秩序',view:'people'},{day:1,month:'下月',title:'月度财务结算',note:'拨款、工资与运营支出',view:'finance'},{day:d.getDate()+3>28?3:d.getDate()+3,month:'近期',title:'备课组教研',note:'分析阶段性学情',view:'actions'}];return[...scheduled,...defaults].slice(0,4)}
 
@@ -339,7 +362,30 @@
   function roleCard(role){const def=roleDef(role),trip=state.exchangeTrips.find(x=>x.role===role&&x.status==='away'),id=state.roles[role];if(trip)return`<article class="role-card away"><span>${role}</span><h3>${staffById(trip.staffId).name} · 外出</h3><small>${school(trip.targetId).short}交流 · 余${trip.returnDay-state.day}天</small><p>岗位锁定，当前无增益</p></article>`;if(!id)return`<article class="role-card empty"><span>${role}</span><h3>待任命</h3><div class="role-effects">${roleEffectTags(def)}</div><button class="btn btn-secondary" data-role-choose="${role}">选择人选</button></article>`;const t=staffById(id),fit=roleFit(role,t);return`<article class="role-card"><span>${role}</span><h3>${t.name} <small>适配${fit.toFixed(2)}</small></h3><div class="role-effects">${roleEffectTags(def,fit)}</div><button class="btn btn-secondary" data-person="${id}">查看 / 任免</button></article>`}
 
   function personRow(t,note=''){return`<article class="person-row" tabindex="0" data-person="${t.id}"><span class="person-avatar">${t.name[0]}</span><div><strong>${t.name}</strong><p>${t.subject} · ${t.trait}${note?`<br>${note}`:''}</p></div><span class="stars">${'★'.repeat(t.stars)}</span></article>`}
-  function openPerson(t,isPrincipal=false){if(!t)return;$('.drawer-panel').classList.remove('class-mode');$('#drawer-title').textContent=t.name;const labels=isPrincipal?['行政','教学','沟通','识人','改革','声望']:['教学','管理','沟通','成长'],assignment=isPrincipal?[]:teacherAssignments(t.id);$('#drawer-body').innerHTML=`<div class="profile-head"><span class="person-avatar">${t.name[0]}</span><div><h3>${t.subject||t.title} · 综合 ${Number(t.overall||t.stats.reduce((a,b)=>a+b,0)/t.stats.length).toFixed(2)}</h3><p>${t.trait} · ${t.age}岁</p></div></div><div class="teacher-stat-grid">${t.stats.map((v,i)=>`<span><small>${labels[i]}</small><strong>${v.toFixed(2)}</strong></span>`).join('')}</div>${assignment.length?`<p class="assignment-summary">${assignment.map(a=>`${a.key.endsWith('-0')?'高'+a.key[0]+'年级':classLabel(a.key)}${a.subject}`).join(' · ')}${Object.values(state.roles).includes(t.id)?' · 行政兼任：任课效率×50%':''}</p>`:''}${isPrincipal?`<p>${t.desc}</p>`:personActions(t)}`;$('#drawer').hidden=false;$$('[data-hire]',$('#drawer')).forEach(b=>b.onclick=()=>hirePerson(t,b.dataset.hire));$$('[data-staff-action]').forEach(b=>b.onclick=()=>runStaffAction(t,b.dataset.staffAction))}
+  function openPerson(t,isPrincipal=false){
+    if (!t) return;
+    $('.drawer-panel').classList.remove('class-mode');
+    $('#drawer-kicker').textContent = isPrincipal?'校长档案':'教师档案';
+    $('#drawer-title').textContent = t.name;
+    const labels = isPrincipal?['行政','教学','沟通','识人','改革','声望']:['教学','管理','沟通','成长'];
+    const assignment = isPrincipal?[]:teacherAssignments(t.id);
+    const skills = t.stats.map((value,i)=>{
+      const modifier = isPrincipal?0:t.traitModifiers[i];
+      const change = modifier>0?'positive':modifier<0?'negative':'';
+      return `<span class="${change}"><small>${labels[i]}</small><strong>${value.toFixed(2)}</strong>
+        ${modifier?`<b class="trait-modifier" aria-label="标签修正 ${signed(modifier)}">${signed(modifier)}</b>`:''}</span>`;
+    }).join('');
+    const age = t.age?` · ${t.age}岁`:'';
+    $('#drawer-body').innerHTML = `<div class="profile-head"><span class="person-avatar">${t.name[0]}</span>
+      <div><h3>${t.subject||t.title} · 综合 ${t.overall.toFixed(2)}</h3><p>${t.trait}${age}</p></div>
+      </div><div class="teacher-stat-grid trait-stat-grid">${skills}</div>
+      ${isPrincipal?'':'<p class="trait-caption">带正负号的数字是标签修正，已计入当前能力。能力范围为 0–100。</p>'}
+      ${assignment.length?`<p class="assignment-summary">${assignment.map(item=>`${item.key.endsWith('-0')?'高'+item.key[0]+'年级':classLabel(item.key)}${item.subject}`).join(' · ')}${Object.values(state.roles).includes(t.id)?' · 行政兼任：任课效率×50%':''}</p>`:''}
+      ${isPrincipal?`<p>${t.desc}</p>`:personActions(t)}`;
+    $('#drawer').hidden = false;
+    for (const button of $$('[data-hire]',$('#drawer'))) button.onclick = () => hirePerson(t,button.dataset.hire);
+    for (const button of $$('[data-staff-action]')) button.onclick = () => runStaffAction(t,button.dataset.staffAction);
+  }
 
   function personActions(t){const employed=state.staffIds.includes(t.id),candidate=state.candidateIds.includes(t.id),role=Object.keys(state.roles).find(r=>state.roles[r]===t.id),trip=state.exchangeTrips.find(x=>x.staffId===t.id&&x.status==='away'),open=D.roles.filter(r=>!state.roles[r]&&!SchoolRules.locked(state,r));if(trip)return`<p>正在${school(trip.targetId).short}交流，${trip.returnDay-state.day}天后回任${trip.role}；交流期间不能任免。</p>`;if(!employed&&!candidate&&!role)return`<button class="btn btn-primary btn-block" data-hire="recruit">签约 · ${fmtMoney(SchoolOperations.hireCost(state,t))}</button>`;const dismissCost=staffSalary(t.id),authority=role?3+roleDef(role).rank:3;return`<div class="salary-summary"><span>月薪</span><strong>${fmtMoney(staffSalary(t.id))}</strong></div>${role?`<p>${role} · 效果倍率×${governanceSnapshot().efficiencyFactor.toFixed(2)}${teacherAssignments(t.id).length?' · 任课效率50%':''}</p><button class="btn btn-secondary" data-hire="revoke">撤销行政职务 · 权威−${roleDef(role).authorityCost}</button>`:`${open.length?`<div class="drawer-actions"><select id="role-select">${open.map(r=>`<option>${r}</option>`).join('')}</select><button class="btn btn-primary" data-hire="${employed?'promote':'appoint'}">任命 · ¥${employed?'12,000':'8,000'}</button></div>`:''}${candidate?'<button class="btn btn-secondary" data-hire="assignTeacher">安排班级任课</button>':''}`}<div class="student-action-grid"><button data-staff-action="training"><b>专项培训</b><small>¥12,000 + 1行动点 · 教学/管理提升</small></button><button data-staff-action="commend"><b>公开表彰</b><small>¥8,000 · 教师满意+2</small></button></div><div class="drawer-actions single"><button class="btn btn-secondary" data-hire="bonuscut">降低奖金 · 权威−1</button><button class="btn btn-danger" data-hire="dismiss" ${state.money<dismissCost||state.authority<authority?'disabled':''}>辞退 · ${fmtMoney(dismissCost)} · 权威−${authority}</button></div>`}
 
@@ -578,44 +624,145 @@
 
   function takeLoan(){if(state.debt>0)return toast('当前已有未还借款，不能重复申请。');state.debt=500000;state.money+=500000;state.debtMonths=0;ledger('县教育发展基金应急借款',500000);addNews('学校申请了 50 万元应急借款，须在 6 个月内还清。');save();renderAll();toast('借款到账。每月自动偿还 10 万元，须在 6 个月内结清。')}
 
-  function policyEffectText(e,current={}){const names={stability:'稳定修正',authority:'权威',adminEfficiency:'行政修正',studentAcademic:'基础学业/30天',studentDiscipline:'自律/30天',studentMindset:'心态/30天',studentAnger:'愤怒',studentSatisfaction:'学生满意',teacherSatisfaction:'教师满意/30天'};return Object.entries(e).map(([k,v])=>{const delta=v-(current[k]||0);if(k==='authority'&&delta<0&&principal().bonus.pressure)return '';const factor=['studentAcademic','studentDiscipline','studentMindset'].includes(k)?30:k==='teacherSatisfaction'?.45:1;let text;if(k==='studentAnger')text=`愤怒 切换${signed(delta*8)} · 30天${signed(v*5.4)}`;else if(k==='studentSatisfaction')text=`满意 切换${signed(delta)} · 30天${signed(v*.3)}`;else if(k==='authority')text=`权威 切换${signed(delta)}`;else text=`${names[k]||k} ${signed(v*factor)}${delta?`（差${signed(delta*factor)}）`:''}`;return`<span class="${k==='studentAnger'?v<0?'positive':'negative':v>0?'positive':'negative'}">${text}</span>`}).join('')}
-
-  function renderPolicies(){if(!state)return;const pressure=principal().bonus.pressure;
-    $('#policy-switch-label').textContent=pressure?'当前学习效率':'修改政策消耗';
-    $('#policy-switch-value').textContent=pressure?`${state.learningEfficiency.toFixed(2)}%`:'1 行动点';
-    const snap=stabilitySnapshot(),risk=state.students.filter(s=>s.anger>=70).length,groups=[...new Set(D.schoolPolicyDefinitions.map(x=>x.group))];$('#policy-summary').innerHTML=`<article><span>学校稳定度</span><strong>${snap.value.toFixed(2)}</strong><small>政策直接修正 ${snap.policy.stability>=0?'+':''}${snap.policy.stability.toFixed(2)}</small></article><article><span>学生平均愤怒</span><strong>${snap.anger.toFixed(2)}</strong><small>${risk} 名学生愤怒达到 70（白卷概率在愤怒达到 70 后随超出部分线性上升）</small></article><article><span>领导层支撑</span><strong>${snap.leadership.toFixed(2)}</strong><small>${Object.keys(state.roles).length}/${D.roles.length} 个岗位已任命</small></article><article><span>现行制度</span><strong>${D.schoolPolicyDefinitions.length} 项</strong><small>${pressure?'切换成本标在各选项中':'修改任一政策消耗 1 行动点'}</small></article><div class="stability-formula"><b>稳定度构成</b>${Object.entries(snap.components).map(([k,v])=>`<span>${k}<i><em style="width:${Math.max(0,Math.min(100,v*4))}%"></em></i><strong>${v>=0?'+':''}${v.toFixed(2)}</strong></span>`).join('')}</div>`;$('#policy-groups').innerHTML=groups.map(group=>`<section class="policy-group"><header><p class="kicker">县中治理制度</p><h3>${group}</h3></header><div>${D.schoolPolicyDefinitions.filter(x=>x.group===group).map(def=>{const current=state.schoolPolicies[def.id];return`<article class="policy-card"><div class="policy-card-head"><div><h4>${def.name}</h4><p>${def.desc}</p></div><span>${def.options.find(x=>x.id===current)?.name||'未设置'}</span></div><div class="policy-options">${def.options.map(option=>{
-      const active = option.id===current;
-      const existing = def.options.find(x=>x.id===current);
-      const {charge} = policySwitchCost(option,existing);
-      return `<button class="policy-option ${option.id===current?'active':''}" data-policy="${def.id}" data-option="${option.id}" aria-pressed="${active}" ${!active&&pressure&&!charge.available?'disabled':''}><b>${option.name}</b><small>${option.desc}</small><span>${policyEffectText(option.effects,def.options.find(x=>x.id===current)?.effects)}</span><em>${active?'现行政策':pressure?charge.label:'颁布'}</em></button>`}).join('')}</div></article>`}).join('')}</div></section>`).join('');$$('[data-policy]').forEach(b=>b.addEventListener('click',()=>applySchoolPolicy(b.dataset.policy,b.dataset.option)));window.CampusUI.section('policies',state)}
-  function applySchoolPolicy(policyId,optionId){
-    const def = D.schoolPolicyDefinitions.find(x=>x.id===policyId);
-    const next = def?.options.find(x=>x.id===optionId);
-    const current = def?.options.find(x=>x.id===state.schoolPolicies[policyId]);
-    if (state.gameOver||state.actionFeedback||!def||!next||next===current) return;
+  function policyImpact(selection){
+    const def = D.schoolPolicyDefinitions.find(item=>item.id===selection?.policyId);
+    const next = def?.options.find(item=>item.id===selection?.optionId);
+    const current = def?.options.find(item=>item.id===state.schoolPolicies[def.id]);
+    if (!next||next===current) return null;
     const {charge,authorityDelta} = policySwitchCost(next,current);
+    const diff = key=>(next.effects[key]||0)-(current?.effects[key]||0);
+    const angerShock = diff('studentAnger')*8;
+    const studentAnger = state.students.map(student=>SchoolRules.clamp(student.anger+angerShock));
+    const authority = SchoolRules.clamp(state.authority+(principal().bonus.pressure?Math.max(0,authorityDelta):authorityDelta));
+    const studentSatisfaction = SchoolRules.clamp(state.studentSatisfaction+diff('studentSatisfaction'));
+    const adminEfficiency = governanceSnapshot(authority).derivedAdmin;
+    const policies = {...state.schoolPolicies,[def.id]:next.id};
+    const policy = schoolPolicyTotals(policies);
+    const anger = studentAnger.reduce((sum,value)=>sum+value,0)/Math.max(1,studentAnger.length);
+    const stability = stabilitySnapshot({authority,studentSatisfaction,adminEfficiency,anger,policy}).value;
+    return {def,next,current,charge,policies,policy,studentAnger,authority,studentSatisfaction,adminEfficiency,anger,stability};
+  }
+
+  function policyMetric(key,label,before,after,suffix='',showChange=false,lowerIsBetter=false){
+    const delta = round2(after-before);
+    const changed = showChange&&delta!==0;
+    const direction = changed ? ((delta>0)!==lowerIsBetter?'positive':'negative') : '';
+    return `<article class="policy-meter ${direction}" data-policy-metric="${key}">
+      <span>${label}</span>
+      <strong>${before.toFixed(2)}${suffix}</strong>
+      ${changed?`<small>→ ${after.toFixed(2)}${suffix} <b>${signed(delta)}</b></small>`:''}
+    </article>`;
+  }
+
+  function renderPolicyImpact(){
+    const selected = policyImpact(pendingPolicy);
     const pressure = principal().bonus.pressure;
-    if (!charge.available) return toast(pressure?'学习效率不足，无法切换政策。':'修改学校政策需要 1 点行动力。');
-    if (!confirm(`确定将“${def.name}”调整为“${next.name}”？\n${charge.label}。政策将从今天起生效。`)) return;
-    const before = pressure ? captureActionState() : null;
+    const resource = pressure?'learningEfficiency':'actionPoints';
+    const currentPolicy = schoolPolicyTotals();
+    const instant = [
+      ['stability','学校稳定度',state.stability,selected?.stability],
+      ['anger','学生平均愤怒',averageAnger(),selected?.anger,'',true],
+      ['studentSatisfaction','学生满意度',state.studentSatisfaction,selected?.studentSatisfaction],
+      ['authority','校长权威',state.authority,selected?.authority],
+      ['adminEfficiency','行政效率',state.adminEfficiency,selected?.adminEfficiency],
+      [resource,pressure?'全校学习效率':'剩余行动点',state[resource],
+        selected?.charge.available ? state[resource]-selected.charge.amount : state[resource],pressure?'%':'']
+    ];
+    const ongoing = [
+      ['studentAcademic','学业基础',30],['studentDiscipline','学生自律',30],['studentMindset','学生心态',30],
+      ['studentAnger','学生愤怒',5.4,true],['studentSatisfaction','学生满意',.3],['teacherSatisfaction','教师满意',.45]
+    ];
+    const newPolicy = selected?.policy || currentPolicy;
+    const ongoingChanged = ongoing.filter(([key,,factor])=>round2(newPolicy[key]*factor-currentPolicy[key]*factor)!==0).length;
+    const showOngoing = policyImpactPeriod==='ongoing';
+    $('#policy-summary').innerHTML = `<div class="policy-impact-heading">
+      <div><h3>${selected?`${selected.def.name} · 切换预览`:'政策影响'}</h3>
+      <p aria-live="polite">${selected?`${selected.current?.name||'当前'} → ${selected.next.name}`:'点选下方方案，查看当前值与切换后的变化。'}</p></div>
+      ${selected?`<div class="policy-preview-buttons"><button type="button" id="policy-cancel" class="btn btn-secondary">取消</button>
+        <button type="button" id="policy-confirm" class="btn btn-primary" ${selected.charge.available?'':'disabled'}>${selected.charge.available?'确认切换':'资源不足'}</button></div>`:''}
+    </div>
+    ${selected?`<p class="policy-charge">${selected.charge.label} · 确认后结算</p>`:''}
+    <div class="policy-period-tabs" aria-label="影响周期">
+      <button type="button" data-policy-period="instant" aria-pressed="${!showOngoing}">即时变化</button>
+      <button type="button" data-policy-period="ongoing" aria-pressed="${showOngoing}">持续影响 / 30 天${ongoingChanged?` · ${ongoingChanged} 项变化`:''}</button>
+    </div>
+    <div class="policy-meter-grid" aria-label="切换即时影响" ${showOngoing?'hidden':''}>${instant.map(([key,label,before,after,suffix,lower])=>
+      policyMetric(key,label,before,after??before,suffix,Boolean(selected),lower)).join('')}</div>
+    <div id="policy-recurring" ${showOngoing?'':'hidden'}>
+      <div class="policy-meter-grid">${ongoing.map(([key,label,factor,lower])=>
+        policyMetric(key,label,currentPolicy[key]*factor,newPolicy[key]*factor,'',Boolean(selected),lower)).join('')}</div>
+      <p>这里只比较制度带来的持续修正。实际成长还受师资、学生状态和学习效率影响。</p>
+    </div>`;
+    for (const button of $$('[data-policy-period]')) {
+      button.onclick = () => {
+        policyImpactPeriod = button.dataset.policyPeriod;
+        renderPolicyImpact();
+        $(`[data-policy-period="${policyImpactPeriod}"]`).focus({preventScroll:true});
+      };
+    }
+    for (const option of $$('#policy-groups [data-policy]')) {
+      const active = option.dataset.policy===selected?.def.id&&option.dataset.option===selected?.next.id;
+      option.setAttribute('aria-pressed',String(active));
+    }
+    $('#policy-cancel')?.addEventListener('click',()=>{
+      const option = $(`[data-policy="${selected.def.id}"][data-option="${selected.next.id}"]`);
+      pendingPolicy = null;
+      policyImpactPeriod = 'instant';
+      renderPolicyImpact();
+      if (option?.getClientRects().length) option.focus({preventScroll:true});
+    });
+    $('#policy-confirm')?.addEventListener('click',applySchoolPolicy);
+  }
+
+  function renderPolicies(){
+    if (!state) return;
+    const pressure = principal().bonus.pressure;
+    $('#policy-switch-label').textContent = pressure?'当前学习效率':'剩余行动点';
+    $('#policy-switch-value').textContent = pressure?`${state.learningEfficiency.toFixed(2)}%`:String(state.actionPoints);
+    const groups = [...new Set(D.schoolPolicyDefinitions.map(item=>item.group))];
+    $('#policy-groups').innerHTML = groups.map(group=>`<section class="policy-group"><header><h3>${group}</h3></header><div>
+      ${D.schoolPolicyDefinitions.filter(item=>item.group===group).map(def=>{
+        const current = def.options.find(item=>item.id===state.schoolPolicies[def.id]);
+        return `<article class="policy-card">
+          <div class="policy-card-head"><div><h4>${def.name}</h4><p>${def.desc}</p></div><span>${current?.name||'未设置'}</span></div>
+          <div class="policy-options">${def.options.map(option=>{
+            const active = option===current;
+            const {charge} = policySwitchCost(option,current);
+            return `<button type="button" class="policy-option ${active?'active':''}" data-policy="${def.id}" data-option="${option.id}" aria-pressed="false">
+              <b>${option.name}</b><small>${option.desc}</small><em>${active?'现行政策':charge.label}</em>
+            </button>`;
+          }).join('')}</div>
+        </article>`;
+      }).join('')}</div></section>`).join('');
+    for (const option of $$('#policy-groups [data-policy]')) {
+      option.onclick = () => {
+        pendingPolicy = {policyId:option.dataset.policy,optionId:option.dataset.option};
+        renderPolicyImpact();
+      };
+    }
+    renderPolicyImpact();
+    window.CampusUI.section('policies',state);
+  }
+
+  function applySchoolPolicy(){
+    const selected = policyImpact(pendingPolicy);
+    if (state.gameOver||state.actionFeedback||!selected||!selected.charge.available) return;
+    const {def,next,charge} = selected;
+    const before = captureActionState();
+    pendingPolicy = null;
+    policyImpactPeriod = 'instant';
     state[charge.resource] -= charge.amount;
-    const angerShock = ((next.effects.studentAnger||0)-(current?.effects.studentAnger||0))*8;
-    state.students.forEach(s=>s.anger=D.clamp(s.anger+angerShock,0,100));
-    state.studentSatisfaction += (next.effects.studentSatisfaction||0)-(current?.effects.studentSatisfaction||0);
-    state.authority += pressure ? Math.max(0,authorityDelta) : authorityDelta;
-    state.schoolPolicies[policyId] = optionId;
-    state.policyChanges.unshift({date:isoDay(getDate()),policyId,optionId});
+    state.students.forEach((student,i)=>student.anger=selected.studentAnger[i]);
+    state.studentSatisfaction = selected.studentSatisfaction;
+    state.authority = selected.authority;
+    state.schoolPolicies = selected.policies;
+    state.policyChanges.unshift({date:isoDay(getDate()),policyId:def.id,optionId:next.id});
     state.policyChanges = state.policyChanges.slice(0,30);
-    state.stability = stabilitySnapshot().value;
     addCalendarEvent('action',`颁布：${def.name}·${next.name}`);
     addNews(`学校颁布“${def.name}—${next.name}”，学生与教职工开始适应新制度。`);
-    if (pressure) return finishActionFeedback(next.name,before,'政策已颁布');
-    clampStats();
-    save();
-    renderAll();
-    showView('policies');
-    toast('政策已经颁布，效果从今日起生效。');
+    finishActionFeedback(next.name,before,'政策已颁布');
   }
+
   function effectChips(e){const names={teaching:'教学',power:'实力',academics:'学业',morale:'学生满意',staffSatisfaction:'职工满意',teacherSatisfaction:'教师满意',authority:'权威',prestige:'声望',safety:'稳定修正',stabilityBonus:'稳定修正',teacherGrowth:'教师成长',recruit:'人才库',sponsor:'社会资金',austerity:'全员奖金下调'};return Object.entries(e).filter(([k,v])=>v&&typeof v!=='object').slice(0,4).map(([k,v])=>`<span>${names[k]||k}${typeof v==='number'?` ${v>0?'+':''}${v}`:''}</span>`).join('')}
   function renderActions(){if(!state)return;const pressure=principal().bonus.pressure;
     $('#action-resource-label').textContent=pressure?'当前学习效率':'本周行动点';
