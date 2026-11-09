@@ -16,7 +16,7 @@
       id:'zhou', name:'周丽君', title:'督学型校长', trait:'高压督学',
       desc:'开局全校学习效率为 150%。校长行动和政策切换原本每扣 1 点行动点或权威，改为扣 1 个学习效率百分点。每周每名学生愤怒额外 +0.10。',
       bonus:{pressure:{startingEfficiency:150,weeklyAnger:0.1}},
-      stats:[78,78,78,78,78,78]
+      stats:[88,94,82,85,90,84]
     }
   ];
 

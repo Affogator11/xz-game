@@ -308,6 +308,56 @@
 }
 .trait-caption { color: #516253; font-size: 13px; line-height: 1.45; }
 
+.office-heading-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 5px; }
+.ranked-fieldset {
+  margin: 12px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.ranked-fieldset legend { padding: 0 5px; font-weight: 700; }
+.ranked-options { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+.ranked-options label { display: inline-flex; align-items: center; gap: 5px; min-height: 32px; cursor: pointer; }
+#ranked-nickname-field { display: grid; gap: 4px; margin-top: 8px; }
+#ranked-nickname {
+  width: min(100%, 270px);
+  min-height: 38px;
+  border: 1px solid #a5b1a0;
+  border-radius: 5px;
+  padding: 5px 8px;
+  background: #fffef9;
+  color: var(--ink);
+  font-size: 16px;
+}
+#ranked-disclosure { font-size: 12px; color: #516253; }
+.leaderboard-dialog {
+  width: min(520px, calc(100% - 24px));
+  max-height: 86dvh;
+  overflow: auto;
+  padding: 15px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fffef9;
+  color: var(--ink);
+}
+.leaderboard-dialog::backdrop { background: rgb(20 45 36 / .57); }
+.leaderboard-dialog header { display: flex; justify-content: space-between; gap: 8px; }
+.leaderboard-dialog h2, .leaderboard-dialog p { margin: 0 0 6px; }
+.leaderboard-dialog p { font-size: 13px; color: #516253; }
+#leaderboard-personal { overflow-wrap: anywhere; }
+#leaderboard-rows { list-style: none; padding: 0; margin: 10px 0; }
+#leaderboard-rows li {
+  display: grid;
+  grid-template-columns: 2em minmax(0,1fr) auto;
+  align-items: baseline;
+  gap: 6px;
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--line);
+}
+#leaderboard-rows li b { overflow-wrap: anywhere; }
+#leaderboard-rows li strong { font-variant-numeric: tabular-nums; }
+#leaderboard-rows li:nth-child(-n+3) { background: #f4efdc; }
+
 @media(max-width:780px) {
   #view-overview .office-heading .office-identity { font-size: 12px; }
   .office-links { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 5px; }

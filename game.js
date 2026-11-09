@@ -156,7 +156,31 @@
     renderPrincipalOptions();
     $('#new-game-btn').addEventListener('click',openSetup);
     $('[data-close-modal]').addEventListener('click',()=>$('#setup-modal').hidden=true);
-    $('#start-game-btn').addEventListener('click',()=>{const term=Number($('input[name="term"]:checked').value);enterGame(freshState(selectedPrincipal,term))});
+    const nicknameField = $('#ranked-nickname-field');
+    const nicknameInput = $('#ranked-nickname');
+    $('#leaderboard-consent').addEventListener('change',()=>{
+      const ranked = $('input[name="ranked"]:checked').value==='yes';
+      nicknameField.hidden = !ranked;
+      nicknameInput.disabled = !ranked;
+      if (ranked) nicknameInput.focus();
+    });
+    nicknameInput.addEventListener('input',()=>nicknameInput.setCustomValidity(''));
+    for (const button of $$('[data-leaderboard-open]')) button.onclick = showLeaderboard;
+    window.addEventListener('online',syncLeaderboard);
+    $('#start-game-btn').addEventListener('click',()=>{
+      if (!selectedPrincipal) return;
+      const ranked = $('input[name="ranked"]:checked').value==='yes';
+      const name = ranked ? GaokaoLeaderboard.nickname(nicknameInput.value) : '';
+      if (ranked&&!name) {
+        nicknameInput.setCustomValidity('请输入 1–16 个字符作为公开昵称。');
+        nicknameInput.reportValidity();
+        return;
+      }
+      const term = Number($('input[name="term"]:checked').value);
+      const game = freshState(selectedPrincipal,term);
+      if (ranked) game.leaderboard = GaokaoLeaderboard.createEntry(name);
+      enterGame(game);
+    });
     $$('#main-nav .nav-item').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.view)));
     $$('[data-view-jump]').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.viewJump)));
     $$('.speed-btn').forEach(b=>b.addEventListener('click',()=>advanceDays(Number(b.dataset.days))));
@@ -192,7 +216,18 @@
     $$('.principal-card').forEach(card=>card.addEventListener('click',()=>{selectedPrincipal=$('input',card).value;$$('.principal-card').forEach(c=>c.classList.toggle('selected',c===card));$('#start-game-btn').disabled=false}));
   }
   function openSetup(){$('#setup-modal').hidden=false;setTimeout(()=>$('#setup-title').focus?.(),0)}
-  function enterGame(newState){state=normalizeState(newState);if(isGaokaoSeason()&&!state.gaokao.mocks.some(x=>x.date===isoDay(getDate())))runGaokaoDailyMock();$('#start-screen').hidden=true;$('#setup-modal').hidden=true;$('#game-shell').hidden=false;renderAll();save();setTimeout(resumePendingFlow,0)}
+  function enterGame(newState){state=normalizeState(newState);if(isGaokaoSeason()&&!state.gaokao.mocks.some(x=>x.date===isoDay(getDate())))runGaokaoDailyMock();$('#start-screen').hidden=true;$('#setup-modal').hidden=true;$('#game-shell').hidden=false;renderAll();save();syncLeaderboard();setTimeout(resumePendingFlow,0)}
+
+  function syncLeaderboard(){
+    const current = state;
+    return GaokaoLeaderboard.sync(current?.leaderboard,()=>{
+      if (state===current) save();
+    });
+  }
+
+  function showLeaderboard(){
+    return GaokaoLeaderboard.show(state?.leaderboard,syncLeaderboard);
+  }
 
   function showView(name){
     if (name!=='policies') { pendingPolicy=null; policyImpactPeriod='instant'; }
@@ -787,12 +822,16 @@
   function promoteSchoolYear(year){const continuing=state.students.filter(s=>s.grade<3).map(s=>({...s,grade:s.grade+1,className:classLabel(classKey(s.grade+1,s.classNo))})),fresh=[1,2,3,4,5].flatMap(c=>studentLibrary.filter(s=>s.grade===1&&s.classNo===c).slice(0,c>=4?20:30)).map((s,i)=>({...s,id:`${s.id}-Y${year}-${i}`,stats:[...s.stats],dailyChange:{academic:0,discipline:0,mindset:0,anger:0}}));state.students=[...continuing,...fresh];const old={...state.classTeachers},special=state.gradeSpecialists;state.gradeSpecialists={1:special[3],2:special[1],3:special[2]};[1,2,3,4,5].forEach(c=>{state.classTeachers[classKey(3,c)]=old[classKey(2,c)];state.classTeachers[classKey(2,c)]=old[classKey(1,c)];state.classTeachers[classKey(1,c)]=old[classKey(3,c)]})}
 
   function finalizeGaokao(year){
-    const seniors=state.students.filter(s=>s.grade===3),avg=round2(seniors.reduce((a,s)=>a+s.score,0)/Math.max(1,seniors.length)),qingbei=seniors.filter(s=>s.score>=700).sort((a,b)=>b.score-a.score),rankings=state.schools.map(s=>({id:s.id,name:s.name,score:s.id==='qiu'?avg:SchoolRules.softScore(s.exam+35+(s.power-50)*.35+(s.morale-50)*.1+(Math.random()-.5)*16)})).sort((a,b)=>b.score-a.score),rank=rankings.findIndex(x=>x.id==='qiu')+1,gain=Math.max(1,9-rank)+qingbei.length*1.2,powerGain=round2(gain*.45),prestigeGain=round2(gain),academicGain=round2(Math.max(.5,(5-rank)*.45));state.power+=powerGain;state.prestige+=prestigeGain;state.academics+=academicGain;const influenceResult=null,report={year,avg,qingbei:qingbei.map(s=>({name:s.name,score:s.score,className:s.className})),rank,rankings,effects:{power:powerGain,prestige:prestigeGain,academics:academicGain,influence:influenceResult?.progress||0}};state.gaokao.reports.unshift(report);promoteSchoolYear(year);addCalendarEvent('exam',`${year} 年高考放榜`,`${year}-06-11`);addNews(`${year} 年高考放榜：秋秋一中全市第 ${rank}，平均 ${avg.toFixed(2)} 分，清北 ${qingbei.length} 人。`);showGaokaoResult(report)
+    const seniors=state.students.filter(s=>s.grade===3),avg=round2(seniors.reduce((a,s)=>a+s.score,0)/Math.max(1,seniors.length)),qingbei=seniors.filter(s=>s.score>=700).sort((a,b)=>b.score-a.score),rankings=state.schools.map(s=>({id:s.id,name:s.name,score:s.id==='qiu'?avg:SchoolRules.softScore(s.exam+35+(s.power-50)*.35+(s.morale-50)*.1+(Math.random()-.5)*16)})).sort((a,b)=>b.score-a.score),rank=rankings.findIndex(x=>x.id==='qiu')+1,gain=Math.max(1,9-rank)+qingbei.length*1.2,powerGain=round2(gain*.45),prestigeGain=round2(gain),academicGain=round2(Math.max(.5,(5-rank)*.45));state.power+=powerGain;state.prestige+=prestigeGain;state.academics+=academicGain;const influenceResult=null,report={year,avg,qingbei:qingbei.map(s=>({name:s.name,score:s.score,className:s.className})),rank,rankings,effects:{power:powerGain,prestige:prestigeGain,academics:academicGain,influence:influenceResult?.progress||0}};state.gaokao.reports.unshift(report);GaokaoLeaderboard.record(state.leaderboard,report.avg);promoteSchoolYear(year);addCalendarEvent('exam',`${year} 年高考放榜`,`${year}-06-11`);addNews(`${year} 年高考放榜：秋秋一中全市第 ${rank}，平均 ${avg.toFixed(2)} 分，清北 ${qingbei.length} 人。`);showGaokaoResult(report)
   }
-  function showGaokaoResult(report){$('#gaokao-result-body').innerHTML=`<div class="gaokao-result-hero"><span>全市排名</span><strong>#${report.rank}</strong><b>平均分 ${report.avg.toFixed(2)}</b><em>清北 ${report.qingbei.length} 人</em></div><div class="result-effects"><span>综合实力 +${report.effects.power.toFixed(2)}</span><span>学校声望 +${report.effects.prestige.toFixed(2)}</span><span>学业指数 +${report.effects.academics.toFixed(2)}</span><span>${report.rank<=4?`联赛积分以统考和联考结算为准`:'高考不额外发放联赛积分'}</span></div>${report.qingbei.length?`<section><h3>清北录取学生</h3><div class="admission-list">${report.qingbei.map(s=>`<span><b>${s.name}</b>${s.className} · ${s.score} 分</span>`).join('')}</div></section>`:''}<section><h3>全市学校成绩排名</h3><ol class="city-rank-list">${report.rankings.map((x,i)=>`<li class="${x.id==='qiu'?'home':''}"><span>${i+1}. ${x.name}</span><b>${x.score.toFixed(2)}</b></li>`).join('')}</ol></section><p>原高一、高二已升年级，新高一完成招生；原高三任课架构转入新高一，教学楼与硬件增益继续作用于新学年。</p>`;$('#gaokao-result-modal').hidden=false}
+  function showGaokaoResult(report){$('#gaokao-result-body').innerHTML=`<div class="gaokao-result-hero"><span>全市排名</span><strong>#${report.rank}</strong><b>平均分 ${report.avg.toFixed(2)}</b><em>清北 ${report.qingbei.length} 人</em></div><div class="result-effects"><span>综合实力 +${report.effects.power.toFixed(2)}</span><span>学校声望 +${report.effects.prestige.toFixed(2)}</span><span>学业指数 +${report.effects.academics.toFixed(2)}</span><span>${report.rank<=4?`联赛积分以统考和联考结算为准`:'高考不额外发放联赛积分'}</span></div>${report.qingbei.length?`<section><h3>清北录取学生</h3><div class="admission-list">${report.qingbei.map(s=>`<span><b>${s.name}</b>${s.className} · ${s.score} 分</span>`).join('')}</div></section>`:''}<section><h3>全市学校成绩排名</h3><ol class="city-rank-list">${report.rankings.map((x,i)=>`<li class="${x.id==='qiu'?'home':''}"><span>${i+1}. ${x.name}</span><b>${x.score.toFixed(2)}</b></li>`).join('')}</ol></section><p>原高一、高二已升年级，新高一完成招生；原高三任课架构转入新高一，教学楼与硬件增益继续作用于新学年。</p>
+    <button type="button" id="gaokao-leaderboard-btn" class="btn btn-secondary">查看高考排行榜</button>`;
+    $('#gaokao-leaderboard-btn').onclick = showLeaderboard;
+    $('#gaokao-result-modal').hidden=false;
+  }
   function advanceDays(days,continuation=false){if(timeAdvancing||state.gameOver)return;const pending=GameFlow.next(state);if(!['none','advance'].includes(pending)){resumePendingFlow();return}if(!continuation&&state.advanceTargetDay<=state.day)state.advanceTargetDay=state.day+(isGaokaoSeason()?1:days);days=Math.min(days,state.advanceTargetDay-state.day);if(days<=0)return;timeAdvancing=true;save();const overlay=$('#time-transition');$('#time-transition-date').textContent=days===1?'推进至下一天':`还有${days}天校务待结算`;overlay.hidden=false;requestAnimationFrame(()=>overlay.classList.add('show'));$$('.speed-btn').forEach(b=>b.disabled=true);const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;setTimeout(()=>{processDays(days);setTimeout(()=>{overlay.classList.remove('show');overlay.hidden=true;$$('.speed-btn').forEach(b=>b.disabled=false);timeAdvancing=false;resumePendingFlow()},reduced?0:240)},reduced?0:180)}
 
-  function processDays(days){if(state.gameOver)return;const messages=[];for(let i=0;i<days&&state.day<state.advanceTargetDay;i++){const before=getDate(),wasGaokao=isGaokaoSeason(before),next=new Date(before);next.setDate(next.getDate()+1);state.date=next.toISOString();state.day++;SchoolRules.exchangeDay(state,allStaff).forEach(message=>{addNews(message);messages.push(message)});if(next.getDay()===1)state.actionPoints=state.maxActionPoints;dailyStudentUpdate();if(isGaokaoSeason(next))runGaokaoDailyMock(next);if(next.getDate()===1)monthlySettlement();if(next.getDate()===20||next.getDate()===25&&[2,5,8,11].includes(next.getMonth())){const kind=next.getDate()===20?'city':'province',report=SchoolRules.standardExam(state,kind,isoDay(next));if(report){state.pendingExamReports??=[];state.pendingExamReports.push(report);addCalendarEvent('exam',kind==='city'?'全市统考':'全省统考',isoDay(next))}}if(state.day%7===0&&!state.briefingLedger[Math.floor(state.day/7)]){applyWeeklyGovernance();applyFacilityWeekly();state.history.push(state.power);state.history=state.history.slice(-8);const invite=aiWeeklyTurn();GameFlow.createBrief(state,window.CampusEvents.briefing(state,D.events,invite))}if(!isGaokaoSeason(next))state.scheduledEvents.filter(e=>e.status==='scheduled'&&e.date<=isoDay(next)).forEach(ev=>{const result=resolveJointExam(ev);if(!state.pendingJointReports.some(r=>r.ev.id===ev.id))state.pendingJointReports.push({ev:{...ev},result})});if(wasGaokao&&!isGaokaoSeason(next)&&before.getMonth()===5)finalizeGaokao(before.getFullYear());checkFailureConditions();if(state.day>=state.termYears*365)finishGame();if(!wasGaokao&&isGaokaoSeason(next))state.advanceTargetDay=state.day;if(state.gameOver||state.weeklyBrief||state.pendingJointReports.length||state.pendingExamReports?.length||state.exchangeRequests.some(r=>r.status==='accepted'&&!r.deferred)||!wasGaokao&&isGaokaoSeason(next))break}clampStats();save();renderAll();if(messages.length)toast(messages.join(' '))}
+  function processDays(days){if(state.gameOver)return;const messages=[];for(let i=0;i<days&&state.day<state.advanceTargetDay;i++){const before=getDate(),wasGaokao=isGaokaoSeason(before),next=new Date(before);next.setDate(next.getDate()+1);state.date=next.toISOString();state.day++;SchoolRules.exchangeDay(state,allStaff).forEach(message=>{addNews(message);messages.push(message)});if(next.getDay()===1)state.actionPoints=state.maxActionPoints;dailyStudentUpdate();if(isGaokaoSeason(next))runGaokaoDailyMock(next);if(next.getDate()===1)monthlySettlement();if(next.getDate()===20||next.getDate()===25&&[2,5,8,11].includes(next.getMonth())){const kind=next.getDate()===20?'city':'province',report=SchoolRules.standardExam(state,kind,isoDay(next));if(report){state.pendingExamReports??=[];state.pendingExamReports.push(report);addCalendarEvent('exam',kind==='city'?'全市统考':'全省统考',isoDay(next))}}if(state.day%7===0&&!state.briefingLedger[Math.floor(state.day/7)]){applyWeeklyGovernance();applyFacilityWeekly();state.history.push(state.power);state.history=state.history.slice(-8);const invite=aiWeeklyTurn();GameFlow.createBrief(state,window.CampusEvents.briefing(state,D.events,invite))}if(!isGaokaoSeason(next))state.scheduledEvents.filter(e=>e.status==='scheduled'&&e.date<=isoDay(next)).forEach(ev=>{const result=resolveJointExam(ev);if(!state.pendingJointReports.some(r=>r.ev.id===ev.id))state.pendingJointReports.push({ev:{...ev},result})});if(wasGaokao&&!isGaokaoSeason(next)&&before.getMonth()===5)finalizeGaokao(before.getFullYear());checkFailureConditions();if(state.day>=state.termYears*365)finishGame();if(!wasGaokao&&isGaokaoSeason(next))state.advanceTargetDay=state.day;if(state.gameOver||state.weeklyBrief||state.pendingJointReports.length||state.pendingExamReports?.length||state.exchangeRequests.some(r=>r.status==='accepted'&&!r.deferred)||!wasGaokao&&isGaokaoSeason(next))break}clampStats();save();renderAll();syncLeaderboard();if(messages.length)toast(messages.join(' '))}
 
   function applyWeeklyGovernance(){
     const weeklyAnger = principal().bonus.pressure?.weeklyAnger;

@@ -6,11 +6,11 @@
   <meta name="theme-color" content="#17372e">
   <meta name="description" content="秋秋一中校长模拟器：一款离线可玩的学校经营策略游戏。">
   <title>秋秋一中：校长志</title>
-  <link rel="stylesheet" href="styles.css?v=20261109a">
-  <link rel="stylesheet" href="game-ui.css?v=20261109a">
-  <link rel="stylesheet" href="compact-ui.css?v=20261109a">
-  <link rel="stylesheet" href="readable-ui.css?v=20261109a">
-  <link rel="stylesheet" href="status-view.css?v=20261109a">
+  <link rel="stylesheet" href="styles.css?v=20261109b">
+  <link rel="stylesheet" href="game-ui.css?v=20261109b">
+  <link rel="stylesheet" href="compact-ui.css?v=20261109b">
+  <link rel="stylesheet" href="readable-ui.css?v=20261109b">
+  <link rel="stylesheet" href="status-view.css?v=20261109b">
 </head>
 <body>
   <a class="skip-link" href="#main">跳到主要内容</a>
@@ -24,6 +24,7 @@
       <p class="start-lead">经营秋秋一中，培养学生，带领学校争夺联赛排名。</p>
       <button id="new-game-btn" class="btn btn-primary btn-large">签署任命书</button>
       <button id="continue-btn" class="btn btn-ghost btn-large" hidden>继续上次任期</button>
+      <button type="button" class="btn btn-ghost btn-large" data-leaderboard-open>高考排行榜</button>
       <p class="start-foot">经营一所县中，改变一群人的未来 · 自动存档</p>
     </div>
   </section>
@@ -42,6 +43,18 @@
           <label><input type="radio" name="term" value="1"> <span><b>1 年</b><small>速战速决 · 365 天</small></span></label>
           <label><input type="radio" name="term" value="3" checked> <span><b>3 年</b><small>标准任期 · 1095 天</small></span></label>
           <label><input type="radio" name="term" value="5"> <span><b>5 年</b><small>长期建设 · 1825 天</small></span></label>
+        </div>
+      </fieldset>
+      <fieldset class="ranked-fieldset" id="leaderboard-consent">
+        <legend>高考排行榜</legend>
+        <div class="ranked-options">
+          <label><input type="radio" name="ranked" value="no" checked> 不计入</label>
+          <label><input type="radio" name="ranked" value="yes"> 计入</label>
+        </div>
+        <div id="ranked-nickname-field" hidden>
+          <label for="ranked-nickname">公开昵称</label>
+          <input id="ranked-nickname" type="text" maxlength="32" autocomplete="nickname" disabled aria-describedby="ranked-disclosure">
+          <small id="ranked-disclosure">输入 1–16 个字符。放榜后会公开昵称与本任期最高高考均分。</small>
         </div>
       </fieldset>
       <div class="setup-summary"><span>任期目标</span><strong>把全市第 7 的秋秋一中建设为地方强校</strong></div>
@@ -88,7 +101,10 @@
       <section id="view-overview" class="view active" aria-labelledby="overview-title">
         <div class="page-head office-heading">
           <div><h2 id="overview-title">校长办公室</h2><p class="office-identity"><span id="principal-name">校长</span> · <span id="ui-week">任期第 1 周</span></p></div>
-          <button id="secretary-btn" class="btn btn-secondary">秘书建议</button>
+          <div class="office-heading-actions">
+            <button type="button" class="btn btn-secondary" data-leaderboard-open>高考榜</button>
+            <button id="secretary-btn" class="btn btn-secondary">秘书建议</button>
+          </div>
         </div>
         <section class="week-mission office-brief" aria-label="本周工作">
           <div><h3>本周工作</h3><p id="office-brief-note"></p></div>
@@ -197,25 +213,35 @@
   <div id="gaokao-season" class="gaokao-season" hidden><section class="gaokao-shell" role="dialog" aria-modal="true" aria-labelledby="gaokao-title"><header><div><p class="eyebrow">6 月 1 日—10 日 · 全市高考季</p><h2 id="gaokao-title">高考冲刺指挥中心</h2><p>此阶段只管理高三。每天自动举行一次模拟考，联考与其他校务暂时冻结。</p></div><div class="gaokao-day"><span>冲刺日程</span><strong id="gaokao-day-label">第 1 / 10 天</strong></div></header><div id="gaokao-metrics" class="gaokao-metrics"></div><div class="gaokao-board"><section><h3>今日冲刺部署</h3><div id="gaokao-actions" class="gaokao-actions"></div></section><section><h3>十日模拟考曲线</h3><div id="gaokao-mocks" class="gaokao-mocks"></div><p id="gaokao-note"></p></section></div><button id="gaokao-next" class="btn btn-primary btn-block">结束今日工作并推进一天</button></section></div>
   <div id="gaokao-result-modal" class="modal" hidden><div class="modal-backdrop"></div><section class="modal-panel gaokao-result-panel" role="dialog" aria-modal="true" aria-labelledby="gaokao-result-title"><p class="eyebrow">香香市普通高考成绩发布会</p><h2 id="gaokao-result-title">年度高考成绩单</h2><div id="gaokao-result-body"></div><button id="gaokao-result-close" class="btn btn-primary btn-block">确认成绩，迎接新学年</button></section></div>
   <dialog id="ui-help" class="game-help"><header><p class="eyebrow">写给新任校长</p><h2>你的第一周，可以这样开始</h2></header><ol><li><b>先看看校园</b><p>首页的重点工作来自当前校情；详细校历与消息放在“校务手记”。</p></li><li><b>组建队伍，照顾学生</b><p>在人事页按区域任命干部；在学生页选择年级、班级，再安排任课或与学生谈心。</p></li><li><b>做几件值得的事</b><p>校长行动按方向分类，每周一恢复行动点。政策、建设也会影响师生，先看清代价再决定。</p></li><li><b>迎接下一周</b><p>使用推进一天或一周结算校园成长。每周简报三项事件；每月20日市考，每季度末25日省考，高考季按天安排。</p></li></ol><p class="help-save">游戏自动保存在当前浏览器。继续任期即可读档。存档不会自动跨设备同步；清除网站数据会删除本机存档。</p><button id="ui-help-close" class="btn btn-primary btn-block">明白了，回校园</button></dialog>
+  <dialog id="leaderboard-dialog" class="leaderboard-dialog" aria-labelledby="leaderboard-title">
+    <header><div><h2 id="leaderboard-title">高考排行榜</h2><p>按各任期的最高高考均分排序 · 前 50 名</p></div>
+      <form method="dialog"><button class="icon-btn" aria-label="关闭排行榜">×</button></form>
+    </header>
+    <p id="leaderboard-personal"></p>
+    <p id="leaderboard-status" role="status"></p>
+    <ol id="leaderboard-rows" aria-label="高考成绩排名"></ol>
+    <button type="button" id="leaderboard-refresh" class="btn btn-secondary" data-leaderboard-open>刷新排行榜</button>
+  </dialog>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <div id="time-transition" class="time-transition" hidden aria-live="polite"><div class="time-transition-card"><span class="seal">秋</span><p>校历推进中</p><strong id="time-transition-date">下一周</strong><div class="time-progress"><i></i></div><small>学生成长、学校治理与其他学校行动正在结算</small></div></div>
 
-  <script src="data.js?v=20261109a"></script>
-  <script src="school-rules.js?v=20261109a"></script>
-  <script src="game-flow.js?v=20261109a"></script>
-  <script src="school-operations.js?v=20261109a"></script>
-  <script src="league-center.js?v=20261109a"></script>
-  <script src="campus-event-legacy.js?v=20261109a"></script>
-  <script src="campus-event-library.js?v=20261109a"></script>
-  <script src="campus-event-expansion.js?v=20261109a"></script>
-  <script src="campus-event-stories.js?v=20261109a"></script>
-  <script src="event-content-244.js?v=20261109a"></script>
-  <script src="campus-event-catalog.js?v=20261109a"></script>
-  <script src="campus-event-results.js?v=20261109a"></script>
-  <script src="campus-event-conditions.js?v=20261109a"></script>
-  <script src="campus-events.js?v=20261109a"></script>
-  <script src="status-view.js?v=20261109a"></script>
-  <script src="game-ui.js?v=20261109a"></script>
-  <script src="game.js?v=20261109a"></script>
+  <script src="data.js?v=20261109b"></script>
+  <script src="school-rules.js?v=20261109b"></script>
+  <script src="game-flow.js?v=20261109b"></script>
+  <script src="school-operations.js?v=20261109b"></script>
+  <script src="league-center.js?v=20261109b"></script>
+  <script src="campus-event-legacy.js?v=20261109b"></script>
+  <script src="campus-event-library.js?v=20261109b"></script>
+  <script src="campus-event-expansion.js?v=20261109b"></script>
+  <script src="campus-event-stories.js?v=20261109b"></script>
+  <script src="event-content-244.js?v=20261109b"></script>
+  <script src="campus-event-catalog.js?v=20261109b"></script>
+  <script src="campus-event-results.js?v=20261109b"></script>
+  <script src="campus-event-conditions.js?v=20261109b"></script>
+  <script src="campus-events.js?v=20261109b"></script>
+  <script src="status-view.js?v=20261109b"></script>
+  <script src="game-ui.js?v=20261109b"></script>
+  <script src="leaderboard.js?v=20261109b"></script>
+  <script src="game.js?v=20261109b"></script>
 </body>
 </html>

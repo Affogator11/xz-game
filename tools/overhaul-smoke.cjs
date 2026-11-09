@@ -55,6 +55,8 @@ async function main(){
   await navigate(origin+'/');await click('#new-game-btn');await click('input[name="principal"][value="zhou"]');await click('#start-game-btn');
   const zhou=await saved();
   assert.equal(zhou.principalId,'zhou');
+  assert.deepEqual(zhou.principalStats,[88,94,82,85,90,84]);
+  assert.equal(zhou.leaderboard,undefined);
   assert.equal(zhou.learningEfficiency,150);
   await check('Zhou starts at 150% learning efficiency and shows it on the dashboard',"document.querySelector('#school-status-heading').textContent.includes('150.00%')");
   await restore({...zhou,actionPoints:0});await click('[data-view="actions"]');
@@ -91,6 +93,17 @@ async function main(){
   assert.ok(pressureWeek.students.every((s,i)=>Math.abs(s.anger-ordinaryWeek.students[i].anger-.1)<.005));
   await restore(pressureWeek);
   await check('Zhou adds 0.10 anger on the weekly boundary, with no repeat on reload',`JSON.parse(localStorage.getItem('qiu-principal-sim-v1')).students[0].anger===${pressureWeek.students[0].anger}`);
+  await restore(fresh);
+  await navigate(origin+'/');await click('#new-game-btn');await click('input[name="principal"][value="zhou"]');
+  await click('input[name="ranked"][value="yes"]');
+  await click('#start-game-btn');
+  await check('ranked terms require a visible, nonempty nickname',"!document.querySelector('#setup-modal').hidden&&!document.querySelector('#ranked-nickname-field').hidden&&!document.querySelector('#ranked-nickname').validity.valid");
+  await evaluate("(()=>{const input=document.querySelector('#ranked-nickname');input.value='  <校友>  ';input.dispatchEvent(new Event('input',{bubbles:true}));})()");
+  await click('#start-game-btn');
+  const rankedRun=await saved();
+  assert.equal(rankedRun.leaderboard.nickname,'<校友>');
+  assert.equal(rankedRun.leaderboard.best,null);
+  assert.match(rankedRun.leaderboard.token,/^[a-f0-9]{48}$/);
   await restore(fresh);
   // Status guidance uses the same stored values and student actions as ordinary play.
   await check('home gauges label all twelve school positions and highlight one priority',"[...document.querySelectorAll('#metric-grid .status-meter')].length===12&&document.querySelectorAll('.school-status-card.status-priority').length===1&&document.querySelector('#school-status-priority').getClientRects().length>0");
@@ -209,10 +222,30 @@ async function main(){
   // Global discipline offices must affect actual students, not only their office cards.
   const admin=JSON.parse(JSON.stringify(fresh));admin.roles['政教处主任']=teacherId;admin.roleOrigins['政教处主任']='teacher';await restore(fresh);await evaluate('Math.random=()=>.5');await advance(1);const withoutAdmin=await saved();await restore(admin);await evaluate('Math.random=()=>.5');await advance(1);const withAdmin=await saved();assert.ok(withAdmin.students[0].dailyChange.discipline>withoutAdmin.students[0].dailyChange.discipline);checks.push('discipline office benefits reach real student growth');console.log('PASS discipline office benefits reach real student growth');
   // A weekly brief on the first gaokao day must never trap the player again.
-  const gaokao=JSON.parse(JSON.stringify(fresh));gaokao.date='2023-05-31T00:00:00+08:00';gaokao.day=335;await restore(gaokao);await advance(1);
+  const gaokao=JSON.parse(JSON.stringify(fresh));gaokao.date='2023-05-31T00:00:00+08:00';gaokao.day=335;gaokao.leaderboard=rankedRun.leaderboard;await restore(gaokao);
+  await evaluate(`(()=>{
+    const originalFetch=window.fetch;
+    window.rankingTest={online:false,post:null};
+    window.fetch=async (url,options={})=>{
+      if(!String(url).includes('/api/leaderboard'))return originalFetch(url,options);
+      if(!window.rankingTest.online)throw new Error('network unavailable');
+      if(options.method==='POST'){
+        window.rankingTest.post=JSON.parse(options.body);
+        return Response.json({score:window.rankingTest.post.score});
+      }
+      return Response.json({rows:[window.rankingTest.post]});
+    };
+  })()`);
+  await advance(1);
   await check('first gaokao day shows actionable weekly brief above the season',"!document.querySelector('#gaokao-season').hidden&&!document.querySelector('#event-modal').hidden&&+getComputedStyle(document.querySelector('#event-modal')).zIndex>+getComputedStyle(document.querySelector('#gaokao-season')).zIndex");
   await drain();for(let i=0;i<10;i++){await click('#gaokao-next');await pause(180);await drain();}
   await check('gaokao completes ten mocks and retains 390 pupils in five-class grades',"{const s=JSON.parse(localStorage.getItem('qiu-principal-sim-v1'));s.gaokao.mocks.length===10&&s.gaokao.reports.length===1&&s.students.length===390&&Object.keys(s.classTeachers).length===15}");
+  await check('the actual gaokao score survives offline as a pending entry',"{const s=JSON.parse(localStorage.getItem('qiu-principal-sim-v1'));s.leaderboard.best===s.gaokao.reports[0].avg&&s.leaderboard.synced===null}");
+  await evaluate("window.rankingTest.online=true");
+  await click('#gaokao-leaderboard-btn');
+  await check('reopening the leaderboard sends the pending score and safely renders the nickname',
+    "{const s=JSON.parse(localStorage.getItem('qiu-principal-sim-v1')),row=document.querySelector('#leaderboard-rows li b');s.leaderboard.synced===s.gaokao.reports[0].avg&&window.rankingTest.post.nickname==='<校友>'&&row.textContent==='<校友>'&&row.children.length===0}");
+  await click('#leaderboard-dialog form button');
   await check('year rollover rotates each original teaching team without aliasing',`{const s=JSON.parse(localStorage.getItem('qiu-principal-sim-v1'));JSON.stringify(s.classTeachers['1-1'])===${JSON.stringify(JSON.stringify(fresh.classTeachers['3-1']))}&&JSON.stringify(s.classTeachers['2-1'])===${JSON.stringify(JSON.stringify(fresh.classTeachers['1-1']))}&&JSON.stringify(s.classTeachers['3-1'])===${JSON.stringify(JSON.stringify(fresh.classTeachers['2-1']))}}`);
   const month=JSON.parse(JSON.stringify(fresh));month.date='2022-07-31T00:00:00+08:00';month.day=31;month.budgets.security=150;await restore(month);await evaluate('Math.random=()=>.5');await advance(1);await check('monthly security investment redistributes to stability and satisfaction',"{const s=JSON.parse(localStorage.getItem('qiu-principal-sim-v1'));s.stabilityBonus>0&&s.staffSatisfaction>64&&s.studentSatisfaction>62&&s.money>0}");
   // Default views fit the app viewport on desktop and phone, without page scrolling.
